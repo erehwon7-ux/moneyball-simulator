@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>머니볼 세이버메트릭스 & 도형의 방정식 3D 시뮬레이터</title>
+    <!-- Tailwind CSS & Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- KaTeX for Beautiful LaTeX Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            overflow: hidden;
+            background-color: #0b0f19;
+            user-select: none;
+        }
+        .mono {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+        /* Custom neon scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative text-slate-100">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="w-full h-full absolute inset-0 z-0"></div>
+
+    <!-- 2D SCREEN PROJECTION LABELS LAYER -->
+    <div id="labels-container" class="absolute inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+    <!-- CENTRAL SCREEN-FLASH VISUAL ALERTS -->
+    <div id="visual-alert" class="absolute inset-0 pointer-events-none z-30 flex flex-col items-center justify-center hidden transition-all duration-300">
+        <div id="alert-banner" class="scale-50 opacity-0 transition-all duration-500 bg-black/60 px-10 py-6 rounded-3xl border border-white/20 backdrop-filter backdrop-blur-md shadow-[0_0_50px_rgba(255,255,255,0.15)] text-center">
+            <h1 id="alert-title" class="text-5xl md:text-7xl font-black tracking-widest text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]">HIT!</h1>
+            <p id="alert-subtitle" class="text-sm md:text-base text-slate-300 mt-2 font-bold uppercase tracking-wider"></p>
+        </div>
+    </div>
+
+    <!-- TOP SCOREBOARD (전광판) -->
+    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-[92%] max-w-4xl glass-panel rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <!-- 경기 상황판 -->
+        <div class="flex items-center gap-6">
+            <div class="bg-black/40 px-4 py-2 rounded-xl border border-emerald-500/20 text-center">
+                <span class="text-xs text-emerald-400 font-semibold block uppercase tracking-wider">Inning</span>
+                <span class="text-2xl font-bold text-slate-100 mono" id="board-inning">1회말</span>
+            </div>
+            <div class="flex items-center gap-4 bg-black/30 px-6 py-2 rounded-xl border border-slate-700">
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block font-semibold">EAGLES</span>
+                    <span class="text-3xl font-extrabold text-amber-500 mono" id="score-home">0</span>
+                </div>
+                <div class="text-xl text-slate-500 font-bold px-2">VS</div>
+                <div class="text-left">
+                    <span class="text-xs text-slate-400 block font-semibold">VISITORS</span>
+                    <span class="text-3xl font-extrabold text-slate-300 mono" id="score-away">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 카운트 & 주자 현황 -->
+        <div class="flex items-center gap-8">
+            <!-- B S O 볼카운트 -->
+            <div class="flex flex-col gap-1.5 font-bold text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="w-4 text-emerald-400 mono">B</span>
+                    <div class="flex gap-1" id="count-b">
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-4 text-amber-400 mono">S</span>
+                    <div class="flex gap-1" id="count-s">
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-4 text-rose-500 mono">O</span>
+                    <div class="flex gap-1" id="count-o">
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                        <div class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 transition-colors"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주자 그래픽 표시 (다이아몬드) -->
+            <div class="relative w-16 h-16 bg-black/20 rounded-lg p-2 border border-slate-700">
+                <div class="absolute w-3.5 h-3.5 border border-slate-500 rounded-sm transform rotate-45 top-1.5 left-[23px] transition-colors duration-300" id="base-2"></div>
+                <div class="absolute w-3.5 h-3.5 border border-slate-500 rounded-sm transform rotate-45 top-[23px] left-1.5 transition-colors duration-300" id="base-3"></div>
+                <div class="absolute w-3.5 h-3.5 border border-slate-500 rounded-sm transform rotate-45 top-[23px] right-1.5 transition-colors duration-300" id="base-1"></div>
+                <div class="absolute w-2 h-2 bg-slate-600 rounded-full bottom-1 left-[28px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEFT STATS CONTROLLER (세이버메트릭스 비율 지표 조절 패널) -->
+    <div class="absolute left-4 top-28 bottom-24 z-10 w-80 glass-panel rounded-2xl p-5 flex flex-col justify-between gap-4 overflow-y-auto">
+        <div>
+            <h2 class="text-lg font-bold text-emerald-400 border-b border-slate-700/60 pb-2 mb-4 flex items-center gap-2">
+                📊 세이버메트릭스 조절기
+            </h2>
+            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                타자의 통계 비율 스탯을 조절하여 실제 타격 타이밍 성공 시 생성될 야구 타구 확률 모델 변화를 실험하세요.
+            </p>
+
+            <div class="space-y-4">
+                <!-- 타율 (BA) -->
+                <div>
+                    <div class="flex justify-between text-sm font-semibold mb-1">
+                        <span class="text-slate-300">타율 (BA)</span>
+                        <span class="text-emerald-400 mono font-bold" id="val-ba">.280</span>
+                    </div>
+                    <input type="range" id="slider-ba" min="0.100" max="0.450" step="0.005" value="0.280" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                </div>
+
+                <!-- 출루율 (OBP) -->
+                <div>
+                    <div class="flex justify-between text-sm font-semibold mb-1">
+                        <span class="text-slate-300">출루율 (OBP)</span>
+                        <span class="text-sky-400 mono font-bold" id="val-obp">.350</span>
+                    </div>
+                    <input type="range" id="slider-obp" min="0.200" max="0.600" step="0.005" value="0.350" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500">
+                </div>
+
+                <!-- 장타율 (SLG) -->
+                <div>
+                    <div class="flex justify-between text-sm font-semibold mb-1">
+                        <span class="text-slate-300">장타율 (SLG)</span>
+                        <span class="text-amber-500 mono font-bold" id="val-slg">.420</span>
+                    </div>
+                    <input type="range" id="slider-slg" min="0.200" max="0.800" step="0.005" value="0.420" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                </div>
+
+                <!-- 계산된 OPS -->
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 mt-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">계산된 OPS (OBP+SLG)</span>
+                        <span class="text-lg font-black text-rose-400 mono" id="val-ops">0.770</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div id="bar-ops" class="bg-gradient-to-r from-emerald-500 to-rose-500 h-full transition-all duration-300" style="width: 55%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간 시뮬레이션 확률 안내 -->
+        <div class="bg-black/30 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
+            <span class="text-slate-400 font-bold block mb-1">🎯 실시간 타격 예측 확률:</span>
+            <div class="flex justify-between">
+                <span>장타 / 홈런</span>
+                <span class="mono text-amber-400 font-bold" id="prob-hr">12.5%</span>
+            </div>
+            <div class="flex justify-between">
+                <span>단타 / 안타</span>
+                <span class="mono text-emerald-400 font-bold" id="prob-hit">28.0%</span>
+            </div>
+            <div class="flex justify-between">
+                <span>범타 / 아웃</span>
+                <span class="mono text-rose-400 font-bold" id="prob-out">59.5%</span>
+            </div>
+        </div>
+
+        <!-- 리셋 및 정보 -->
+        <div class="text-center">
+            <p class="text-[10px] text-slate-500">인천운남고 AI 활용 융합설계 챌린지 2026</p>
+        </div>
+    </div>
+
+    <!-- RIGHT MATHEMATICS DISPLAY (도형의 방정식 학술 보드) -->
+    <div class="absolute right-4 top-28 bottom-24 z-10 w-80 glass-panel rounded-2xl p-5 flex flex-col justify-between gap-4 overflow-y-auto">
+        <div>
+            <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700/60 pb-2 mb-3 flex items-center gap-2">
+                📐 도형의 방정식 분석
+            </h2>
+            
+            <!-- 수학 기하 오버레이 고정 스위치 이식 -->
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 mb-4 space-y-2">
+                <span class="text-xs font-bold text-slate-300 block mb-1">💡 기하 레이어 활성화</span>
+                <div class="grid grid-cols-1 gap-2">
+                    <button id="toggle-coord" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold border border-slate-700 text-slate-400 hover:border-emerald-500/40 hover:text-emerald-400 transition-all flex items-center justify-between">
+                        <span>1. 평면좌표와 거리</span>
+                        <span class="w-2 h-2 rounded-full bg-slate-700 indicator-dot"></span>
+                    </button>
+                    <button id="toggle-line" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold border border-slate-700 text-slate-400 hover:border-pink-500/40 hover:text-pink-400 transition-all flex items-center justify-between">
+                        <span>2. 파울라인 직선</span>
+                        <span class="w-2 h-2 rounded-full bg-slate-700 indicator-dot"></span>
+                    </button>
+                    <button id="toggle-circle" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold border border-slate-700 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-400 transition-all flex items-center justify-between">
+                        <span>3. 수비 시프트 원</span>
+                        <span class="w-2 h-2 rounded-full bg-slate-700 indicator-dot"></span>
+                    </button>
+                    <button id="toggle-translate" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold border border-slate-700 text-slate-400 hover:border-purple-500/40 hover:text-purple-400 transition-all flex items-center justify-between">
+                        <span>4. 주자 평행이동</span>
+                        <span class="w-2 h-2 rounded-full bg-slate-700 indicator-dot"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 수학 텍스트 렌더링 컨테이너 -->
+            <div id="math-details" class="space-y-4 text-xs leading-relaxed bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+                <div id="math-formula-area">수학 개념 버튼을 눌러 시각화를 켜주세요.</div>
+            </div>
+        </div>
+
+        <!-- 실시간 거리 연산 패널 -->
+        <div class="bg-black/30 p-4 rounded-xl border border-slate-800" id="distance-panel" style="display: none;">
+            <span class="text-xs text-amber-400 font-bold block mb-2">⚡ 실시간 거리 측정 연산</span>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-400">
+                    <span>공 좌표 (B)</span>
+                    <span id="coord-ball" class="mono text-slate-200">(0.00, 0.00)</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>가장 가까운 야수 (F)</span>
+                    <span id="coord-fielder" class="mono text-slate-200">(0.00, 0.00)</span>
+                </div>
+                <div class="border-t border-slate-800 my-2"></div>
+                <div class="text-slate-300 leading-relaxed font-semibold">
+                    <span class="text-[11px] block text-slate-400 mb-1">두 점 사이의 거리 식:</span>
+                    <div id="distance-math-katex" class="text-center py-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-[10px] text-slate-500">
+            H-A-H 인공지능 윤리 및 수학 융합수업 교구
+        </div>
+    </div>
+
+    <!-- BOTTOM SIMULATOR CONTROL BAR -->
+    <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 w-[92%] max-w-4xl glass-panel rounded-2xl p-4 flex flex-col gap-3">
+        <!-- Play controls -->
+        <div class="flex flex-wrap justify-between items-center gap-4">
+            <!-- 플레이 조작 액션 그룹 -->
+            <div class="flex items-center gap-2">
+                <button id="btn-pitch" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-95 text-slate-100 font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-900/30 text-sm flex items-center gap-1.5">
+                    ⚾ 투구 (PITCH)
+                </button>
+                <button id="btn-hit" class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-95 text-slate-100 font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-amber-900/30 text-sm flex items-center gap-1.5" disabled>
+                    💥 타격 (SWING)
+                </button>
+                <button id="btn-defense" class="bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 active:scale-95 text-slate-100 font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-sky-900/30 text-sm flex items-center gap-1.5" disabled>
+                    🏃‍♂️ 수비이동 (DEFENSE)
+                </button>
+                <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-semibold px-4 py-2.5 rounded-xl transition-all text-sm">
+                    초기화
+                </button>
+            </div>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>실시간 물리 및 세이버메트릭 확률 시뮬레이션 최적화 완료</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 맨 하단에 위치한 통합 알림 로그 중계 배너 -->
+    <div class="absolute bottom-0 left-0 right-0 h-12 bg-black/90 border-t border-slate-800 z-10 flex items-center px-6 gap-3 text-xs">
+        <span class="bg-rose-500/20 text-rose-400 font-extrabold px-2 py-0.5 rounded tracking-wide uppercase text-[10px]">알림 Log</span>
+        <span id="log-text" class="text-slate-300 font-medium">페르소나 슬라이더를 세팅한 뒤 [투구] 버튼을 누르세요.</span>
+    </div>
+
+    <!-- CDN Three.js 로드 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- STREAMING_CHUNK:Defining state variables... ---
+        let scene, camera, renderer, clock;
+        
+        // 게임 상태 머신
+        // 'IDLE', 'PITCHING', 'PITCHED_WAITING', 'HITTING', 'FIELDING', 'RUNNING', 'PLAY_END'
+        let gameState = 'IDLE'; 
+
+        // 수학 오버레이 토글 상태
+        const overlays = {
+            coord: false,
+            line: false,
+            circle: false,
+            translate: false
+        };
+
+        // 데이터 통계 기반 타격 결과
+        let battingAvg = 0.280;
+        let onBaseAvg = 0.350;
+        let sluggingAvg = 0.420;
+        let currentResultType = 'OUT'; // 'OUT', 'SINGLE', 'DOUBLE', 'HR', 'FOUL', 'STRIKE', 'BALL'
+        let pitchIsStrike = true; // 투구 궤적이 스트라이크 코스인지 여부
+
+        // 주자 진루 상태 및 카운트
+        const runnerOnBase = { 1: false, 2: false, 3: false };
+        let ballCount = 0;
+        let strikeCount = 0;
+        let outCount = 0;
+
+        // 3D 그래픽 객체 참조들
+        let ball;
+        const pitchStartPos = new THREE.Vector3(0, 0.4, 15.0); // 투수 마운드
+        const hitStartPos = new THREE.Vector3(0, 0.4, 0.0);    // 홈플레이트
+        let hitTimeElapsed = 0;
+        const hitDuration = 1.8; // 초 단위 타구 비행 시간
+        let targetLandingSpot = new THREE.Vector3(0, 0, 0);
+
+        // 오버레이 및 헬퍼 객체
+        let gridHelper;
+        let axisHelperX, axisHelperZ;
+        let foulLineLeft, foulLineRight;
+        let guideCircleMesh;
+        let distanceLineMesh;
+        let translationVectorsGroup;
+
+        // 마스코트 리스트 (귀여운 독수리 캐릭터들)
+        const characters = {
+            pitcher: null,
+            batter: null,
+            catcher: null,
+            fielders: {},
+            runners: [] // 동적 주자 애니메이션 리스트
+        };
+
+        // 주자 베이스 좌표 상수 정의
+        const baseCoords = {
+            0: new THREE.Vector3(0, 0.05, 0.4),   // 홈플레이트
+            1: new THREE.Vector3(15, 0.05, 15),   // 1루
+            2: new THREE.Vector3(0, 0.05, 30),    // 2루
+            3: new THREE.Vector3(-15, 0.05, 15),  // 3루
+            4: new THREE.Vector3(0, 0.05, 0.4)    // 다시 홈
+        };
+
+        // 수비수 배치 좌표 (X, Z 평면)
+        const fielderPositions = {
+            '1b': { x: 11, z: 12, currentX: 11, currentZ: 12, label: '1루수', role: '1B', winRate: '98.2%' },
+            '2b': { x: 4, z: 22, currentX: 4, currentZ: 22, label: '2루수', role: '2B', winRate: '97.5%' },
+            '3b': { x: -11, z: 12, currentX: -11, currentZ: 12, label: '3루수', role: '3B', winRate: '96.8%' },
+            'ss': { x: -4, z: 22, currentX: -4, currentZ: 22, label: '유격수', role: 'SS', winRate: '97.1%' },
+            'lf': { x: -20, z: 34, currentX: -20, currentZ: 34, label: '좌익수', role: 'LF', winRate: '98.0%' },
+            'cf': { x: 0, z: 39, currentX: 0, currentZ: 39, label: '중견수', role: 'CF', winRate: '98.5%' },
+            'rf': { x: 20, z: 34, currentX: 20, currentZ: 34, label: '우익수', role: 'RF', winRate: '97.8%' }
+        };
+
+        // 수비 추적 담당 야수 키값
+        let activeFielderKey = null;
+
+        // --- STREAMING_CHUNK:Creating grass texture... ---
+        // 인조 잔디 무늬용 캔버스 패턴
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1b3b1d'; // 진녹색
+            ctx.fillRect(0, 0, 128, 128);
+            
+            // 스트라이프 무늬
+            ctx.fillStyle = '#224824'; // 연녹색
+            ctx.fillRect(0, 0, 64, 128);
+            
+            // 약간의 텍스처 노이즈 추가
+            ctx.fillStyle = 'rgba(0,0,0,0.05)';
+            for (let i = 0; i < 600; i++) {
+                ctx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(16, 16);
+            return texture;
+        }
+
+        // --- STREAMING_CHUNK:Building cute eagle model... ---
+        // 'image_1ecc75.png' 의 귀여운 아기독수리 마스코트를 초귀여운(Chubby) 3D 형태로 조합
+        function buildEagleMascot(capColor = 0x222222, jerseyColor = 0xef6a00, isRunner = false) {
+            const group = new THREE.Group();
+
+            // 1. 몸통 (동글동글하고 통통한 하얀 달걀/타원 형태)
+            const bodyGeo = new THREE.SphereGeometry(0.6, 32, 32);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.scale.set(1.1, 0.95, 1.1); // 통통함(Chubby) 강조
+            body.position.y = 0.5;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            // 2. 검은 야구모자 또는 헬멧
+            const capGroup = new THREE.Group();
+            
+            // 모자/헬멧 뚜껑 (반구)
+            const capDomeGeo = new THREE.SphereGeometry(0.42, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const capMat = new THREE.MeshStandardMaterial({ color: capColor, roughness: 0.5 });
+            const capDome = new THREE.Mesh(capDomeGeo, capMat);
+            capDome.position.y = 0.82;
+            capDome.scale.set(1.05, 1, 1.05);
+            capGroup.add(capDome);
+
+            // 모자 챙 (납작한 라운드 박스)
+            const capBrimGeo = new THREE.BoxGeometry(0.48, 0.03, 0.35);
+            const capBrim = new THREE.Mesh(capBrimGeo, capMat);
+            capBrim.position.set(0, 0.8, 0.32);
+            capBrim.rotation.x = 0.08; // 챙 약간 경사지게
+            capGroup.add(capBrim);
+
+            // 모자 전면 Eagles 주황 마크(E)
+            const logoGeo = new THREE.BoxGeometry(0.1, 0.1, 0.02);
+            const logoMat = new THREE.MeshBasicMaterial({ color: 0xef6a00 });
+            const logo = new THREE.Mesh(logoGeo, logoMat);
+            logo.position.set(0, 0.92, 0.38);
+            capGroup.add(logo);
+
+            group.add(capGroup);
+
+            // 3. 커다란 단추 눈 (귀여운 눈동자 하이라이트 추가)
+            const eyeGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
+            
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(0.18, 0.62, 0.44);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(-0.18, 0.62, 0.44);
+            group.add(leftEye);
+            group.add(rightEye);
+
+            // 귀여운 하얀 눈동자 하이라이트 구체
+            const highlightGeo = new THREE.SphereGeometry(0.025, 8, 8);
+            const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const leftH = new THREE.Mesh(highlightGeo, highlightMat);
+            leftH.position.set(0.21, 0.65, 0.5);
+            const rightH = new THREE.Mesh(highlightGeo, highlightMat);
+            rightH.position.set(-0.15, 0.65, 0.5);
+            group.add(leftH);
+            group.add(rightH);
+
+            // 4. 깜찍하고 넙적한 아기부리 (주황색 입체 피드백)
+            const beakGeo = new THREE.ConeGeometry(0.15, 0.2, 4);
+            const beakMat = new THREE.MeshStandardMaterial({ color: 0xffa500, roughness: 0.4 });
+            const beak = new THREE.Mesh(beakGeo, beakMat);
+            beak.rotation.x = Math.PI / 2 + 0.1;
+            beak.scale.set(1.2, 0.7, 1); // 옆으로 넓적하게 만들어 귀여움 극대화
+            beak.position.set(0, 0.52, 0.48);
+            group.add(beak);
+
+            // 5. 검은 주황 투톤 야구 유니폼 상의
+            const jerseyGeo = new THREE.CylinderGeometry(0.61, 0.56, 0.35, 16);
+            const jerseyMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.7 });
+            const jersey = new THREE.Mesh(jerseyGeo, jerseyMat);
+            jersey.position.y = 0.32;
+            group.add(jersey);
+
+            // 목 주황 장식선
+            const collarGeo = new THREE.CylinderGeometry(0.62, 0.62, 0.06, 16);
+            const collarMat = new THREE.MeshStandardMaterial({ color: 0xef6a00, roughness: 0.7 });
+            const collar = new THREE.Mesh(collarGeo, collarMat);
+            collar.position.set(0, 0.42, 0);
+            group.add(collar);
+
+            // 6. 깜찍하고 짧은 날개 (팔)
+            const wingGeo = new THREE.BoxGeometry(0.12, 0.28, 0.2);
+            const leftWing = new THREE.Mesh(wingGeo, bodyMat);
+            leftWing.position.set(0.61, 0.38, 0);
+            leftWing.rotation.z = -0.15;
+            const rightWing = new THREE.Mesh(wingGeo, bodyMat);
+            rightWing.position.set(-0.61, 0.38, 0);
+            rightWing.rotation.z = 0.15;
+            group.add(leftWing);
+            group.add(rightWing);
+
+            // 7. 귀여운 노란 발 (Chubby Foot)
+            const footGeo = new THREE.BoxGeometry(0.18, 0.06, 0.28);
+            const footMat = new THREE.MeshStandardMaterial({ color: 0xffa500 });
+            const leftFoot = new THREE.Mesh(footGeo, footMat);
+            leftFoot.position.set(0.2, 0.015, 0.08);
+            const rightFoot = new THREE.Mesh(footGeo, footMat);
+            rightFoot.position.set(-0.2, 0.015, 0.08);
+            group.add(leftFoot);
+            group.add(rightFoot);
+
+            group.rotation.order = 'YXZ';
+            return group;
+        }
+
+        // --- STREAMING_CHUNK:Initializing 3D components... ---
+        function init() {
+            clock = new THREE.Clock();
+            
+            // 씬 환경 및 짙은 저녁 안개 연출 (image_1ee6de.jpg 스타일)
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0f17);
+            scene.fog = new THREE.FogExp2(0x0c0f17, 0.013);
+
+            // 타자 차단 개선: 홈플레이트(원점)가 완벽하게 보이도록 시야 카메라 수정
+            camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 15.0, -14.5); 
+            camera.lookAt(0, 1.2, 13.0); 
+
+            // 렌더러 생성
+            const container = document.getElementById('canvas-container');
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            container.appendChild(renderer.domElement);
+
+            // --- 조명 설계 (웅장한 스타디움 라이트 타워) ---
+            const ambient = new THREE.AmbientLight(0x283854, 0.9);
+            scene.add(ambient);
+
+            // 조명탑 시뮬레이션용 지향성 조명들 (4방향)
+            const createLightPole = (x, y, z, tx, ty, tz) => {
+                const dirLight = new THREE.DirectionalLight(0xfffbe8, 1.3);
+                dirLight.position.set(x, y, z);
+                dirLight.target.position.set(tx, ty, tz);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 1024;
+                dirLight.shadow.mapSize.height = 1024;
+                dirLight.shadow.camera.near = 1;
+                dirLight.shadow.camera.far = 120;
+                dirLight.shadow.camera.left = -35;
+                dirLight.shadow.camera.right = 35;
+                dirLight.shadow.camera.top = 35;
+                dirLight.shadow.camera.bottom = -35;
+                dirLight.shadow.bias = -0.0005;
+                scene.add(dirLight);
+                scene.add(dirLight.target);
+
+                // 라이트 기둥 메쉬 제작
+                const poleGeo = new THREE.CylinderGeometry(0.12, 0.22, y, 8);
+                const poleMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.85, roughness: 0.2 });
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                pole.position.set(x, y / 2, z);
+                scene.add(pole);
+
+                // 라이트 보드 헤드
+                const boardGeo = new THREE.BoxGeometry(2.2, 1.2, 0.4);
+                const board = new THREE.Mesh(boardGeo, poleMat);
+                board.position.set(x, y, z);
+                board.lookAt(tx, ty, tz);
+                scene.add(board);
+            };
+
+            // 야구장 외곽 4개 방향에 조명탑 건설
+            createLightPole(-38, 20, -5, -10, 0, 15);
+            createLightPole(38, 20, -5, 10, 0, 15);
+            createLightPole(-32, 22, 45, -5, 0, 25);
+            createLightPole(32, 22, 45, 5, 0, 25);
+
+            // --- 정교한 야구장 필드 그라운드 생성 ---
+            // 1. 야구장 전체 외곽 바닥 (파울 및 더트 경계)
+            const groundGeo = new THREE.PlaneGeometry(100, 100);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x071e09, roughness: 0.95 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.01;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // 2. 부채꼴 모양의 잔디밭 메쉬 구현
+            const fieldGeo = new THREE.CircleGeometry(48, 64, 0, Math.PI / 2);
+            const fieldMat = new THREE.MeshStandardMaterial({
+                map: createGrassTexture(),
+                roughness: 0.9
+            });
+            const field = new THREE.Mesh(fieldGeo, fieldMat);
+            field.rotation.x = -Math.PI / 2;
+            field.rotation.z = -Math.PI / 4; // Z축 양수 중심부 정렬
+            field.position.set(0, 0, 0); // 홈 기준 정렬
+            field.receiveShadow = true;
+            scene.add(field);
+
+            // 3. 내야 흙 다이아몬드 (1, 2, 3루 홈 통로)
+            const dirtMat = new THREE.MeshStandardMaterial({ color: 0xaa7044, roughness: 0.95 });
+            const diamondGeo = new THREE.PlaneGeometry(21.5, 21.5);
+            const diamond = new THREE.Mesh(diamondGeo, dirtMat);
+            diamond.rotation.x = -Math.PI / 2;
+            diamond.rotation.z = Math.PI / 4;
+            diamond.position.set(0, 0.005, 15); // 투수마운드를 기점으로 대칭
+            diamond.receiveShadow = true;
+            scene.add(diamond);
+
+            // 잔디 내야 중심부 아일랜드 (투수 마운드 잔디)
+            const moundGrassGeo = new THREE.CircleGeometry(2.5, 32);
+            const moundGrass = new THREE.Mesh(moundGrassGeo, fieldMat);
+            moundGrass.rotation.x = -Math.PI / 2;
+            moundGrass.position.set(0, 0.01, 15);
+            moundGrass.receiveShadow = true;
+            scene.add(moundGrass);
+
+            // 4. 흰색 베이스들 (홈, 1루, 2루, 3루)
+            const baseGeo = new THREE.BoxGeometry(0.38, 0.04, 0.38);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+
+            // 1루 베이스 (15, 0, 15)
+            const base1 = new THREE.Mesh(baseGeo, baseMat);
+            base1.position.set(15, 0.03, 15);
+            base1.rotation.y = Math.PI / 4;
+            base1.castShadow = true;
+            scene.add(base1);
+
+            // 2루 베이스 (0, 0, 30)
+            const base2 = new THREE.Mesh(baseGeo, baseMat);
+            base2.position.set(0, 0.03, 30);
+            base2.rotation.y = Math.PI / 4;
+            base2.castShadow = true;
+            scene.add(base2);
+
+            // 3루 베이스 (-15, 0, 15)
+            const base3 = new THREE.Mesh(baseGeo, baseMat);
+            base3.position.set(-15, 0.03, 15);
+            base3.rotation.y = Math.PI / 4;
+            base3.castShadow = true;
+            scene.add(base3);
+
+            // 홈플레이트 (오각형 메쉬 간이 표현)
+            const homePlateGeo = new THREE.BoxGeometry(0.35, 0.01, 0.35);
+            const homePlate = new THREE.Mesh(homePlateGeo, baseMat);
+            homePlate.position.set(0, 0.01, 0);
+            homePlate.rotation.y = Math.PI / 4;
+            scene.add(homePlate);
+
+            // 5. 웅장한 아치형 외야 관중석 벽면 (image_1ee35c.jpg 참고)
+            const stadiumWallGroup = new THREE.Group();
+            const segments = 12;
+            const wallRadius = 49.5;
+            for (let i = 0; i <= segments; i++) {
+                const angle = -Math.PI / 4 + (Math.PI / 2) * (i / segments);
+                const wx = wallRadius * Math.sin(angle);
+                const wz = wallRadius * Math.cos(angle);
+
+                const wallPartGeo = new THREE.BoxGeometry(14, 6.5, 0.8);
+                const wallPartMat = new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.8 });
+                const wallPart = new THREE.Mesh(wallPartGeo, wallPartMat);
+                wallPart.position.set(wx, 3.25, wz);
+                wallPart.lookAt(0, 3.25, 0);
+                wallPart.castShadow = true;
+                wallPart.receiveShadow = true;
+                stadiumWallGroup.add(wallPart);
+
+                // 관중석 뼈대 펜스 레일 라인 장식
+                const railGeo = new THREE.BoxGeometry(14, 0.15, 0.15);
+                const railMat = new THREE.MeshStandardMaterial({ color: 0xff4b00 });
+                const rail = new THREE.Mesh(railGeo, railMat);
+                rail.position.set(wx, 6.4, wz);
+                rail.lookAt(0, 6.4, 0);
+                stadiumWallGroup.add(rail);
+            }
+            scene.add(stadiumWallGroup);
+
+            // 6. 야구공 (3D Sphere)
+            const ballGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const ballMat = new THREE.MeshStandardMaterial({
+                color: 0xfffcf5,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+            ball = new THREE.Mesh(ballGeo, ballMat);
+            ball.position.copy(pitchStartPos); // 초기 위치 투수판
+            ball.castShadow = true;
+            scene.add(ball);
+
+            // --- STREAMING_CHUNK:Spawning eagles... ---
+            // 투수 (0, 0, 15) - 주황 유니폼
+            characters.pitcher = buildEagleMascot(0x222222, 0xef6a00);
+            characters.pitcher.position.set(0, 0.05, 15.0);
+            characters.pitcher.rotation.y = Math.PI; // 홈플레이트(Z-) 방향 정면 응시
+            scene.add(characters.pitcher);
+
+            // 타자 (-0.9, 0.05, 0.4) - 검정 유니폼
+            characters.batter = buildEagleMascot(0x374151, 0x111827);
+            characters.batter.position.set(-0.9, 0.05, 0.4);
+            characters.batter.rotation.y = Math.PI / 2; // 투수판 방향
+            scene.add(characters.batter);
+
+            // 타자용 야구 배트 쥐어주기
+            const batGeo = new THREE.CylinderGeometry(0.045, 0.02, 1.2, 8);
+            const batMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
+            const bat = new THREE.Mesh(batGeo, batMat);
+            bat.position.set(-0.35, 0.58, 0.15);
+            bat.rotation.set(0.6, 0.4, -0.6);
+            bat.name = "baseball_bat";
+            characters.batter.add(bat);
+
+            // 포수 (0, 0.05, -1.2)
+            characters.catcher = buildEagleMascot(0xef6a00, 0x222222);
+            characters.catcher.position.set(0, 0.05, -1.2);
+            scene.add(characters.catcher);
+
+            // 야수(Fielders) 캐릭터 7명 배치 및 마스코트 할당
+            Object.keys(fielderPositions).forEach(key => {
+                const fData = fielderPositions[key];
+                const fMascot = buildEagleMascot(0x111827, 0x374151);
+                fMascot.position.set(fData.x, 0.05, fData.z);
+                fMascot.rotation.y = Math.PI; // 타석(홈플레이트) 방향 바라보기
+                scene.add(fMascot);
+                characters.fielders[key] = fMascot;
+            });
+
+            // --- 도형의 방정식 수학 오버레이 초기 빌드 ---
+            buildMathOverlays();
+
+            // 반응형 윈도우 리사이징 핸들링
+            window.addEventListener('resize', onWindowResize);
+
+            // 2D 텍스트 레이블 레이어 초기 빌딩
+            initProjectedLabels();
+        }
+
+        // --- STREAMING_CHUNK:Initializing overlay labels... ---
+        // 모든 수비수 및 타자, 투수 머리위 2D HUD 생성
+        function initProjectedLabels() {
+            const container = document.getElementById('labels-container');
+            container.innerHTML = ''; // 초기화
+
+            // 1. 타자 태그 빌딩
+            const batterTag = document.createElement('div');
+            batterTag.id = 'label-batter';
+            batterTag.className = 'absolute bg-gradient-to-r from-red-500 to-amber-500 text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.5)] border border-red-400 flex items-center gap-1 transition-transform animate-bounce';
+            batterTag.innerHTML = `<span>타석</span> <span class="bg-black/30 px-1 py-0.5 rounded text-[10px]">BATTER 💥</span>`;
+            container.appendChild(batterTag);
+
+            // 2. 투수 태그 빌딩
+            const pitcherTag = document.createElement('div');
+            pitcherTag.id = 'label-pitcher';
+            pitcherTag.className = 'absolute bg-slate-900/90 text-amber-400 font-bold text-[10px] px-2 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1';
+            pitcherTag.innerHTML = `<span>투수 (PITCHER)</span>`;
+            container.appendChild(pitcherTag);
+
+            // 3. 야수들 7개 포지션 정보 카드 빌딩
+            Object.keys(fielderPositions).forEach(key => {
+                const data = fielderPositions[key];
+                const label = document.createElement('div');
+                label.id = `label-fielder-${key}`;
+                label.className = 'absolute bg-slate-950/85 text-slate-100 font-bold text-[10px] p-1.5 rounded-lg border border-slate-700/60 shadow-lg flex flex-col gap-0.5 min-w-[70px] text-center';
+                label.innerHTML = `
+                    <span class="text-sky-400 text-[11px] font-extrabold">${data.label} <span class="text-slate-400 text-[9px]">${data.role}</span></span>
+                    <span class="text-[9px] text-emerald-400 font-mono">수비율 ${data.winRate}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        // --- STREAMING_CHUNK:Projecting 3D to 2D... ---
+        // 매 프레임 캐릭터 좌표를 스크린 좌표로 투사하여 라벨 트래킹 업데이트
+        function updateProjectedLabels() {
+            const container = document.getElementById('labels-container');
+            const tempV = new THREE.Vector3();
+
+            const projectToDOM = (threePos, domElement, yOffset = 1.35) => {
+                if (!domElement) return;
+                tempV.copy(threePos);
+                tempV.y += yOffset;
+                tempV.project(camera);
+
+                // 카메라 후방에 있을 때 숨김 처리
+                if (tempV.z > 1) {
+                    domElement.style.display = 'none';
+                    return;
+                }
+
+                domElement.style.display = 'flex';
+                const x = (tempV.x * .5 + .5) * window.innerWidth;
+                const y = (tempV.y * -.5 + .5) * window.innerHeight;
+                domElement.style.transform = `translate(-50%, -100%)`;
+                domElement.style.left = `${x}px`;
+                domElement.style.top = `${y}px`;
+            };
+
+            // 타자 트래킹
+            if (characters.batter) {
+                projectToDOM(characters.batter.position, document.getElementById('label-batter'), 1.45);
+            }
+            // 투수 트래킹
+            if (characters.pitcher) {
+                projectToDOM(characters.pitcher.position, document.getElementById('label-pitcher'), 1.25);
+            }
+            // 7야수 트래킹
+            Object.keys(fielderPositions).forEach(key => {
+                const mascot = characters.fielders[key];
+                if (mascot) {
+                    projectToDOM(mascot.position, document.getElementById(`label-fielder-${key}`), 1.25);
+                }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Building math overlays... ---
+        function buildMathOverlays() {
+            // 1. [좌표와 거리] 데카르트 격자 및 축
+            gridHelper = new THREE.GridHelper(90, 45, 0x059669, 0x334155);
+            gridHelper.position.y = 0.015;
+            gridHelper.visible = false;
+            scene.add(gridHelper);
+
+            // X축 (Red), Z축 (Blue) 굵은 실선 네온화
+            const lineMatX = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const lineMatZ = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+            
+            axisHelperX = new THREE.Mesh(new THREE.BoxGeometry(90, 0.04, 0.04), lineMatX);
+            axisHelperX.position.set(0, 0.02, 0);
+            axisHelperX.visible = false;
+            scene.add(axisHelperX);
+
+            axisHelperZ = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 90), lineMatZ);
+            axisHelperZ.position.set(0, 0.02, 0);
+            axisHelperZ.visible = false;
+            scene.add(axisHelperZ);
+
+            // 실시간 최단 거리 선 (Fielder to Ball)
+            const pathPoints = [new THREE.Vector3(0, 0.02, 0), new THREE.Vector3(0, 0.02, 0)];
+            const distLineGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
+            const distLineMat = new THREE.LineDashedMaterial({
+                color: 0xf59e0b,
+                dashSize: 0.4,
+                gapSize: 0.2
+            });
+            distanceLineMesh = new THREE.Line(distLineGeo, distLineMat);
+            distanceLineMesh.computeLineDistances();
+            distanceLineMesh.visible = false;
+            scene.add(distanceLineMesh);
+
+            // 2. [직선의 방정식 (파울라인)]
+            const linePointsLeft = [new THREE.Vector3(0, 0.03, 0), new THREE.Vector3(-36, 0.03, 36)]; // Z = -X
+            const lineGeoLeft = new THREE.BufferGeometry().setFromPoints(linePointsLeft);
+            const lineMatLeft = new THREE.LineBasicMaterial({ color: 0xf43f5e, linewidth: 3 });
+            foulLineLeft = new THREE.Line(lineGeoLeft, lineMatLeft);
+            foulLineLeft.visible = false;
+            scene.add(foulLineLeft);
+
+            const linePointsRight = [new THREE.Vector3(0, 0.03, 0), new THREE.Vector3(36, 0.03, 36)]; // Z = X
+            const lineGeoRight = new THREE.BufferGeometry().setFromPoints(linePointsRight);
+            const lineMatRight = new THREE.LineBasicMaterial({ color: 0xf43f5e, linewidth: 3 });
+            foulLineRight = new THREE.Line(lineGeoRight, lineMatRight);
+            foulLineRight.visible = false;
+            scene.add(foulLineRight);
+
+            // 3. [원의 방정식 (수비 시프트 가이드라인)]
+            const circlePoints = [];
+            const radius = 24;
+            for (let i = 0; i <= 64; i++) {
+                const theta = (i / 64) * Math.PI * 2;
+                circlePoints.push(new THREE.Vector3(radius * Math.cos(theta), 0.025, radius * Math.sin(theta)));
+            }
+            const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePoints);
+            const circleMat = new THREE.LineBasicMaterial({ color: 0x06b6d4, linewidth: 2 });
+            guideCircleMesh = new THREE.Line(circleGeo, circleMat);
+            guideCircleMesh.visible = false;
+            scene.add(guideCircleMesh);
+
+            // 4. [주자 평행이동 화살표용 그룹]
+            translationVectorsGroup = new THREE.Group();
+            scene.add(translationVectorsGroup);
+        }
+
+        // --- 실시간 렌더러 조정 ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- STREAMING_CHUNK:Visual alerts logic... ---
+        // 전광판 알림 대신 화면 중앙에 폭발적인 네온 비주얼 알림 표출 기능
+        function triggerVisualAlert(title, subtitle, neonColorClass = "text-emerald-400", glowColor = "rgba(16,185,129,0.6)") {
+            const container = document.getElementById('visual-alert');
+            const banner = document.getElementById('alert-banner');
+            const titleEl = document.getElementById('alert-title');
+            const subtitleEl = document.getElementById('alert-subtitle');
+
+            titleEl.textContent = title;
+            titleEl.className = `text-5xl md:text-7xl font-black tracking-widest ${neonColorClass}`;
+            titleEl.style.textShadow = `0 0 25px ${glowColor}`;
+            subtitleEl.textContent = subtitle;
+
+            container.classList.remove('hidden');
+
+            // 마이크로 트랜지션 연동
+            setTimeout(() => {
+                banner.className = "scale-100 opacity-100 transition-all duration-300 bg-black/75 px-10 py-6 rounded-3xl border border-white/20 backdrop-filter backdrop-blur-md text-center";
+            }, 10);
+
+            // 1.8초 뒤 복귀
+            setTimeout(() => {
+                banner.className = "scale-50 opacity-0 transition-all duration-500 bg-black/60 px-10 py-6 rounded-3xl border border-white/20 backdrop-filter backdrop-blur-md text-center";
+                setTimeout(() => {
+                    container.classList.add('hidden');
+                }, 500);
+            }, 1800);
+        }
+
+        // --- STREAMING_CHUNK:Calculating hit formulas... ---
+        // 데이터 통계 기반 타격 결과 연산
+        function calculateHitResult() {
+            const hrProbability = sluggingAvg * 0.35; // 장타율 높을수록 홈런 확률 급상승
+            const hitProbability = battingAvg * 1.1;  // 타율 비례 안타 확률
+
+            const rand = Math.random();
+            
+            // 파울 확률 15%
+            if (Math.random() < 0.15) {
+                currentResultType = 'FOUL';
+                targetLandingSpot.set((Math.random() > 0.5 ? 20 : -20) + (Math.random() - 0.5) * 5, 0, 10 + Math.random() * 20);
+                return '파울타구 발생!';
+            }
+
+            if (rand < hrProbability) {
+                currentResultType = 'HR';
+                const ang = -0.5 + Math.random() * 1.0; 
+                targetLandingSpot.set(52 * Math.sin(ang), 0, 52 * Math.cos(ang));
+                return '🦅 비거리 극대화! 초대형 홈런 발생!';
+            } else if (rand < hrProbability + hitProbability) {
+                if (Math.random() < sluggingAvg) {
+                    currentResultType = 'DOUBLE';
+                    const ang = -0.6 + Math.random() * 1.2;
+                    targetLandingSpot.set(32 * Math.sin(ang), 0, 32 * Math.cos(ang));
+                    return '💥 우중간을 가르는 장타! 2루타 발생!';
+                } else {
+                    currentResultType = 'SINGLE';
+                    const ang = -0.5 + Math.random() * 1.0;
+                    targetLandingSpot.set(22 * Math.sin(ang), 0, 22 * Math.cos(ang));
+                    return '⚡ 안타! 공이 수비수 사이 빈곳에 떨어집니다!';
+                }
+            } else {
+                currentResultType = 'OUT';
+                // 야수 정면 혹은 땅볼 아웃 코스 배정
+                const targetFielderKey = Object.keys(fielderPositions)[Math.floor(Math.random() * 7)];
+                const fPos = fielderPositions[targetFielderKey];
+                targetLandingSpot.set(fPos.x + (Math.random() - 0.5) * 2.5, 0, fPos.z + (Math.random() - 0.5) * 2.5);
+                return '수비 정면 아웃 코스입니다.';
+            }
+        }
+
+        // --- 주자 평행이동 화살표 가이드 생성 ---
+        function drawTranslationArrow(from, to) {
+            const dir = new THREE.Vector3().subVectors(to, from);
+            const length = dir.length();
+            dir.normalize();
+
+            const arrowHelper = new THREE.ArrowHelper(dir, from, length - 1.0, 0xa855f7, 1.2, 0.4);
+            translationVectorsGroup.add(arrowHelper);
+        }
+
+        // --- LaTeX 수학 정보 디스플레이 갱신 함수 ---
+        function updateMathBoard() {
+            const mathArea = document.getElementById('math-formula-area');
+            const distPanel = document.getElementById('distance-panel');
+            
+            if (!overlays.coord && !overlays.line && !overlays.circle && !overlays.translate) {
+                mathArea.innerHTML = `<p class='text-slate-400'>오버레이 필터를 클릭해 기하학 학습을 시작하세요.</p>`;
+                distPanel.style.display = 'none';
+                return;
+            }
+
+            let htmlContent = "";
+
+            if (overlays.coord) {
+                distPanel.style.display = 'block';
+                htmlContent += `
+                    <div class="mb-4">
+                        <span class="text-emerald-400 font-bold uppercase block mb-1">1. 평면좌표 & 두 점 사이의 거리</span>
+                        <p class="text-slate-300">
+                            홈플레이트를 데카르트 평면의 <b>원점 $O(0,0)$</b>으로 맵핑합니다.
+                            필드 위의 모든 야수와 타구의 낙구 지점은 실시간 실수 좌표 $(x, z)$를 가집니다.
+                        </p>
+                        <p class="mt-2 text-amber-300 font-semibold">
+                            공과 최단거리 수비수의 2D 평면상 거리 $d$:
+                        </p>
+                    </div>
+                `;
+            } else {
+                distPanel.style.display = 'none';
+            }
+
+            if (overlays.line) {
+                htmlContent += `
+                    <div class="mb-4">
+                        <span class="text-pink-400 font-bold uppercase block mb-1">2. 직선의 방정식 (파울라인)</span>
+                        <p class="text-slate-300 mb-2">
+                            홈플레이트에서 각각 1루, 3루 베이스를 한계선으로 하는 두 직선의 기울기는 각각 $m=1$ 과 $m=-1$ 입니다.
+                        </p>
+                        <div class="bg-black/40 p-2.5 rounded-lg border border-pink-500/20 text-center text-pink-300 font-mono mb-2">
+                            우익선: $z = x \\quad (x \\ge 0)$<br>
+                            좌익선: $z = -x \\quad (x \\le 0)$
+                        </div>
+                        <p class="text-slate-400 text-[11px]">
+                            타구 $B(x_0, z_0)$가 안타가 되려면 반드시 $z_0 > |x_0|$ 범위를 충족하는 <b>페어(FAIR) 영역</b>에 위치해야만 합니다.
+                        </p>
+                    </div>
+                `;
+            }
+
+            if (overlays.circle) {
+                htmlContent += `
+                    <div class="mb-4">
+                        <span class="text-cyan-400 font-bold uppercase block mb-1">3. 원의 방정식 (수비 시프트)</span>
+                        <p class="text-slate-300 mb-2">
+                            홈플레이트를 중심으로 그라운드를 균등히 분할하는 수비 수성 한계 원호를 설계합니다.
+                        </p>
+                        <div class="bg-black/40 p-2.5 rounded-lg border border-cyan-500/20 text-center text-cyan-300 font-mono mb-2">
+                            $x^2 + z^2 = R^2 \\quad (R=24 \\text{ 또는 } 32)$
+                        </div>
+                        <p class="text-slate-400 text-[11px]">
+                            장타율이 높은 극단적 거포 타자의 데이터(SLG > .520)를 감지하여, 외야수들을 반경 $R=32$ 의 더 넓은 원호 수비망으로 자동 평행/회전 이동시킵니다.
+                        </p>
+                    </div>
+                `;
+            }
+
+            if (overlays.translate) {
+                htmlContent += `
+                    <div>
+                        <span class="text-purple-400 font-bold uppercase block mb-1">4. 도형의 평행 이동</span>
+                        <p class="text-slate-300 mb-2">
+                            타자가 안타를 치거나 볼넷으로 출루할 때, 주자는 베이스라인 방향으로 $a$만큼, $c$만큼 각각 <b>평행 이동</b>합니다.
+                        </p>
+                        <div class="bg-black/40 p-2.5 rounded-lg border border-purple-500/20 text-center text-purple-300 font-mono mb-2">
+                            $f(x, z) \\to f(x - a, z - c)$
+                        </div>
+                        <p class="text-slate-400 text-[11px]">
+                            1루 베이스 $(15, 15)$에서 2루 베이스 $(0, 30)$으로 주자가 평행이동할 때의 변위 벡터는 $\\vec{v} = (-15, 15)$ 가 성립합니다.
+                        </p>
+                    </div>
+                `;
+            }
+
+            mathArea.innerHTML = htmlContent;
+
+            // KaTeX 일괄 파싱 렌더링 적용 (수학 공식 우아하게 표현)
+            renderMathInElement(mathArea, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        }
+
+        // --- STREAMING_CHUNK:Base running animation controller... ---
+        // 정교한 주자 평행이동 관리 클래스 정의
+        class BaseRunner {
+            constructor(startPathIdx, endPathIdx, callback) {
+                this.mesh = buildEagleMascot(0xef6a00, 0x222222); // 주황 주루 헬멧
+                this.mesh.position.copy(baseCoords[startPathIdx]);
+                scene.add(this.mesh);
+                
+                this.currentPathIdx = startPathIdx;
+                this.endPathIdx = endPathIdx;
+                this.speed = 12.0; // 초당 이동 유닛 속도
+                this.t = 0.0;
+                this.callback = callback;
+                this.isDone = false;
+            }
+
+            update(dt) {
+                if (this.isDone) return;
+
+                const nextPathIdx = this.currentPathIdx + 1;
+                const startPos = baseCoords[this.currentPathIdx];
+                const endPos = baseCoords[nextPathIdx];
+                const segmentLength = startPos.distanceTo(endPos);
+                
+                // 보간 비율 증가
+                this.t += (this.speed * dt) / segmentLength;
+                
+                if (this.t >= 1.0) {
+                    this.t = 0.0;
+                    this.mesh.position.copy(endPos);
+                    this.currentPathIdx = nextPathIdx;
+
+                    if (this.currentPathIdx >= this.endPathIdx) {
+                        this.isDone = true;
+                        if (this.callback) this.callback(this);
+                    }
+                } else {
+                    const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, this.t);
+                    this.mesh.position.copy(currentPos);
+                    // 이동 방향 바라보기
+                    this.mesh.lookAt(endPos.x, this.mesh.position.y, endPos.z);
+                }
+            }
+
+            destroy() {
+                scene.remove(this.mesh);
+            }
+        }
+
+        // 동적 주자 진출 실행 핵심 함수
+        function triggerBaseRunning(runType) {
+            gameState = 'RUNNING';
+            document.getElementById('btn-defense').disabled = true;
+
+            // 기존에 그라운드에 활성화된 주자 메쉬들을 모두 제거하고 주자 큐 데이터로 동적 재구축
+            characters.runners.forEach(r => r.destroy());
+            characters.runners = [];
+
+            const runQueue = [];
+
+            // 1. 홈런 시나리오 (모든 루상의 주자 + 타자 주자 홈인)
+            if (runType === 'HR') {
+                if (runnerOnBase[3]) runQueue.push(new BaseRunner(3, 4, onRunnerScored));
+                if (runnerOnBase[2]) runQueue.push(new BaseRunner(2, 4, onRunnerScored));
+                if (runnerOnBase[1]) runQueue.push(new BaseRunner(1, 4, onRunnerScored));
+                
+                // 타자 주자 홈런 질주 (0 -> 4)
+                runQueue.push(new BaseRunner(0, 4, onRunnerScored));
+                
+                // 루상 상태 완전 리셋
+                runnerOnBase[1] = runnerOnBase[2] = runnerOnBase[3] = false;
+            } 
+            // 2. 2루타 시나리오
+            else if (runType === 'DOUBLE') {
+                if (runnerOnBase[3]) runQueue.push(new BaseRunner(3, 4, onRunnerScored));
+                if (runnerOnBase[2]) runQueue.push(new BaseRunner(2, 4, onRunnerScored));
+                if (runnerOnBase[1]) runQueue.push(new BaseRunner(1, 3, onRunnerStoppedAtBase));
+                
+                // 타자 주자 2루 진루 (0 -> 2)
+                runQueue.push(new BaseRunner(0, 2, onRunnerStoppedAtBase));
+                
+                runnerOnBase[3] = runnerOnBase[1]; // 1루에 주자가 있었으면 3루로 가고, 나머지는 홈인해서 비게 됨
+                runnerOnBase[2] = true;
+                runnerOnBase[1] = false;
+            }
+            // 3. 1루타 시나리오 (안타 또는 볼넷)
+            else if (runType === 'SINGLE') {
+                if (runnerOnBase[3]) runQueue.push(new BaseRunner(3, 4, onRunnerScored));
+                if (runnerOnBase[2]) runQueue.push(new BaseRunner(2, 3, onRunnerStoppedAtBase));
+                if (runnerOnBase[1]) runQueue.push(new BaseRunner(1, 2, onRunnerStoppedAtBase));
+                
+                // 타자 주자 1루 진루 (0 -> 1)
+                runQueue.push(new BaseRunner(0, 1, onRunnerStoppedAtBase));
+                
+                if (runnerOnBase[2]) { runnerOnBase[3] = true; runnerOnBase[2] = false; }
+                if (runnerOnBase[1]) { runnerOnBase[2] = true; }
+                runnerOnBase[1] = true;
+            }
+
+            characters.runners = runQueue;
+
+            if (overlays.translate) {
+                renderTranslationVectors();
+            }
+        }
+
+        // 주자가 무사히 베이스에 도착해 멈췄을 때 콜백
+        function onRunnerStoppedAtBase(runner) {
+            checkRunningDone();
+        }
+
+        // 주자가 홈인했을 때 점수 증가 콜백
+        function onRunnerScored(runner) {
+            const scoreHome = document.getElementById('score-home');
+            scoreHome.textContent = parseInt(scoreHome.textContent) + 1;
+            checkRunningDone();
+        }
+
+        // 모든 주자 이동 완료 여부 체크
+        function checkRunningDone() {
+            const allDone = characters.runners.every(r => r.isDone);
+            if (allDone) {
+                gameState = 'PLAY_END';
+                applyGameScoreAndBases();
+                document.getElementById('log-text').textContent = "주자 진루 및 득점 완료! 다음 플레이를 위해 [초기화]를 눌러 투구 대기 상태로 전환하세요.";
+            }
+        }
+
+        // --- STREAMING_CHUNK:Animating 3D simulation loop... ---
+        // 애니메이션 제어 프레임 루프 (Three.js 메인 루프)
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // 1. 투구 물리 이동 (PITCHING)
+            if (gameState === 'PITCHING') {
+                hitTimeElapsed += dt * 1.6; // 투구 속도 제어
+                const t = Math.min(1.0, hitTimeElapsed);
+                
+                // 포물선 궤적 연산 (중력 효과 간이 탑재)
+                const currentPos = new THREE.Vector3().lerpVectors(pitchStartPos, hitStartPos, t);
+                
+                // 무작위 볼/스트라이크 판정을 공의 궤적(X 오프셋)으로 정교하게 투영
+                if (!pitchIsStrike) {
+                    currentPos.x += Math.sin(t * Math.PI) * 1.5; // 볼 코스는 홈플레이트 옆으로 휘어짐
+                }
+                currentPos.y = 0.4 + Math.sin(t * Math.PI) * 1.0; 
+                ball.position.copy(currentPos);
+
+                if (t >= 1.0) {
+                    // 공이 홈에 도달했으나 사용자가 휘두르지 않음 (루킹 스트라이크 / 볼 분기 결정)
+                    gameState = 'PITCHED_WAITING';
+                    resolvePassPitch();
+                }
+            }
+
+            // 2. 타격 물리 이동 및 주자 진출 (HITTING)
+            if (gameState === 'HITTING') {
+                hitTimeElapsed += dt;
+                const t = Math.min(1.0, hitTimeElapsed / hitDuration);
+
+                // 발사각과 낙구 지점을 3D 2차 베지어 곡선으로 비행 궤적 선명화
+                const currentPos = new THREE.Vector3();
+                const peakHeight = currentResultType === 'HR' ? 9.5 : 5.0; // 홈런일 때 높게 치솟는 포물선
+                
+                // X, Z는 등속 운동성 수평 lerp
+                currentPos.x = hitStartPos.x + (targetLandingSpot.x - hitStartPos.x) * t;
+                currentPos.z = hitStartPos.z + (targetLandingSpot.z - hitStartPos.z) * t;
+                currentPos.y = hitStartPos.y + Math.sin(t * Math.PI) * peakHeight;
+
+                ball.position.copy(currentPos);
+
+                // [수학 1: 좌표와 거리 실시간 시각화 처리]
+                if (overlays.coord && activeFielderKey) {
+                    const activeMascot = characters.fielders[activeFielderKey];
+                    const dist = activeMascot.position.distanceTo(ball.position);
+
+                    // 3D 점선 업데이트
+                    const points = [
+                        new THREE.Vector3(ball.position.x, 0.05, ball.position.z),
+                        new THREE.Vector3(activeMascot.position.x, 0.05, activeMascot.position.z)
+                    ];
+                    distanceLineMesh.geometry.setFromPoints(points);
+                    distanceLineMesh.computeLineDistances();
+
+                    // HUD 및 수식 업데이트
+                    document.getElementById('coord-ball').textContent = `(${ball.position.x.toFixed(2)}, ${ball.position.z.toFixed(2)})`;
+                    document.getElementById('coord-fielder').textContent = `(${activeMascot.position.x.toFixed(2)}, ${activeMascot.position.z.toFixed(2)})`;
+                    
+                    const distMathArea = document.getElementById('distance-math-katex');
+                    if (distMathArea) {
+                        distMathArea.innerHTML = `d = \\sqrt{(${ball.position.x.toFixed(1)} - ${activeMascot.position.x.toFixed(1)})^2 + (${ball.position.z.toFixed(1)} - ${activeMascot.position.z.toFixed(1)})^2} \\approx ${dist.toFixed(1)}m`;
+                        katex.render(distMathArea.innerHTML, distMathArea, { throwOnError: false });
+                    }
+                }
+
+                if (t >= 1.0) {
+                    gameState = 'FIELDING';
+                    document.getElementById('btn-defense').disabled = false;
+                    document.getElementById('log-text').textContent = "낙구 완료! 선정된 야수가 기하학적 최단거리 수비를 시작합니다. [수비이동]을 클릭하세요.";
+                }
+            }
+
+            // 3. 야수 수비 추적 애니메이션 (FIELDING) - 선택된 단 한 명의 수비수만 이동!
+            if (gameState === 'FIELDING') {
+                const speed = 8.5 * dt;
+                let fielderArrived = true;
+
+                if (activeFielderKey) {
+                    const mascot = characters.fielders[activeFielderKey];
+                    const distanceToBall = mascot.position.distanceTo(targetLandingSpot);
+                    
+                    if (distanceToBall > 0.4) {
+                        fielderArrived = false;
+                        const direction = new THREE.Vector3().subVectors(targetLandingSpot, mascot.position);
+                        direction.y = 0;
+                        direction.normalize();
+                        mascot.position.addScaledVector(direction, speed);
+                        mascot.lookAt(targetLandingSpot.x, mascot.position.y, targetLandingSpot.z);
+                    }
+                }
+
+                if (fielderArrived) {
+                    if (currentResultType === 'OUT') {
+                        // 아웃 카운트 가산 처리 후 게임 오버
+                        gameState = 'PLAY_END';
+                        document.getElementById('log-text').textContent = "수비 성공! 타자 아웃!";
+                        applyGameScoreAndBases();
+                    } else if (currentResultType === 'FOUL') {
+                        gameState = 'PLAY_END';
+                        document.getElementById('log-text').textContent = "파울타구 회수 완료.";
+                        applyGameScoreAndBases();
+                    } else {
+                        // 안타 및 장타 시 역동적 실제 베이스 러닝 시퀀스 연쇄 개시!
+                        triggerBaseRunning(currentResultType);
+                    }
+                }
+            }
+
+            // 4. 주자 실제 베이스 러닝 업데이트 시퀀스 (RUNNING)
+            if (gameState === 'RUNNING') {
+                characters.runners.forEach(runner => runner.update(dt));
+            }
+
+            // 마스코트들의 숨쉬기 귀여운 모션 감미
+            if (characters.pitcher) characters.pitcher.scale.y = 0.95 + Math.sin(time * 3.5) * 0.02;
+            if (characters.batter) characters.batter.scale.y = 0.95 + Math.sin(time * 3.5) * 0.02;
+
+            // --- 2D Projected 레이블 실시간 연동 트래킹 ---
+            updateProjectedLabels();
+
+            renderer.render(scene, camera);
+        }
+
+        // --- STREAMING_CHUNK:Resolving pitch results... ---
+        // 지켜보기 선택 시 타자 통계(OBP) 데이터를 활용한 스트라이크 / 볼 자동 선언
+        function resolvePassPitch() {
+            document.getElementById('btn-pitch').disabled = true;
+            document.getElementById('btn-hit').disabled = true;
+
+            // 출루율이 높을수록 볼넷(유인구 골라내기)을 유도하기 위해 스트라이크 판정 확률 정교화
+            const strikeProbability = 0.65 - (onBaseAvg - 0.35) * 0.5;
+            
+            if (Math.random() < strikeProbability) {
+                currentResultType = 'STRIKE';
+                strikeCount++;
+                document.getElementById('log-text').textContent = "스트라이크! 완벽한 제구력에 꼼짝하지 못했습니다.";
+                triggerVisualAlert("STRIKE!", "제구력 가득 찬 완벽한 스트라이크 스트라이크!", "text-amber-500", "rgba(245,158,11,0.6)");
+            } else {
+                currentResultType = 'BALL';
+                ballCount++;
+                document.getElementById('log-text').textContent = "볼! 예리한 공을 침착하게 잘 골라냈습니다.";
+                triggerVisualAlert("BALL!", "아슬아슬한 유인구를 완벽히 골라냈습니다.", "text-emerald-500", "rgba(16,185,129,0.6)");
+            }
+
+            updateCountsUI();
+            
+            // 삼진 또는 볼넷 여부 체크
+            setTimeout(() => {
+                checkBaseRunnerCondition();
+            }, 1200);
+        }
+
+        // 스트라이크, 볼카운트 한계 도달 시 판정 처리
+        function checkBaseRunnerCondition() {
+            if (strikeCount >= 3) {
+                outCount++;
+                document.getElementById('log-text').textContent = "삼진 아웃! 3스트라이크로 배트도 쓰지 못하고 아웃됩니다.";
+                triggerVisualAlert("OUT / SO", "3스트라이크 삼진 아웃!", "text-rose-500", "rgba(244,63,94,0.6)");
+                resetAtBatCounts();
+            } else if (ballCount >= 4) {
+                document.getElementById('log-text').textContent = "4볼넷 출루! 침착한 선구안으로 1루 출루 기회를 얻어냅니다.";
+                triggerVisualAlert("BASE ON BALLS 🏃‍♂️", "포볼 출루 허용!", "text-purple-400", "rgba(168,85,247,0.6)");
+                currentResultType = 'SINGLE'; // 볼넷도 단타와 똑같은 1루 이동 벡터 평행이동 적용
+                triggerBaseRunning('SINGLE');
+            } else {
+                // 이닝 진행용 초기화
+                gameState = 'IDLE';
+                ball.position.copy(pitchStartPos);
+                document.getElementById('btn-pitch').disabled = false;
+            }
+            updateCountsUI();
+        }
+
+        // 카운트 보드 UI 갱신
+        function updateCountsUI() {
+            const bDots = document.getElementById('count-b').children;
+            const sDots = document.getElementById('count-s').children;
+            const oDots = document.getElementById('count-o').children;
+
+            // 볼 처리
+            for (let i = 0; i < 3; i++) {
+                bDots[i].className = i < ballCount ? "w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-400 shadow-[0_0_8px_#10b981]" : "w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700";
+            }
+            // 스트라이크 처리
+            for (let i = 0; i < 2; i++) {
+                sDots[i].className = i < strikeCount ? "w-3.5 h-3.5 rounded-full bg-amber-500 border border-amber-400 shadow-[0_0_8px_#f59e0b]" : "w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700";
+            }
+            // 아웃 처리
+            for (let i = 0; i < 2; i++) {
+                oDots[i].className = i < outCount ? "w-3.5 h-3.5 rounded-full bg-rose-500 border border-rose-400 shadow-[0_0_8px_#f43f5e]" : "w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700";
+            }
+
+            if (outCount >= 3) {
+                outCount = 0;
+                runnerOnBase[1] = runnerOnBase[2] = runnerOnBase[3] = false;
+                document.getElementById('log-text').textContent = "쓰리아웃 공수교대! 주자가 리셋됩니다.";
+                triggerVisualAlert("CHANGE INNING", "쓰리아웃 공수교대!", "text-red-500", "rgba(239,68,68,0.7)");
+                updateCountsUI();
+                updateRunnerVisibility();
+            }
+        }
+
+        // 타석 카운트만 리셋
+        function resetAtBatCounts() {
+            ballCount = 0;
+            strikeCount = 0;
+            gameState = 'IDLE';
+            ball.position.copy(pitchStartPos);
+            document.getElementById('btn-pitch').disabled = false;
+            updateCountsUI();
+        }
+
+        // --- STREAMING_CHUNK:Refining scoreboard... ---
+        // 아웃/안타 주자 진루 결과 스코어보드 전광판 반영 및 주자 마스코트 노출 제어
+        function applyGameScoreAndBases() {
+            const scoreHome = document.getElementById('score-home');
+            
+            if (currentResultType === 'HR') {
+                // 진루 러닝 연출 결과가 완전히 완료되었을 때 최종 시각적 피드백 제공
+                triggerVisualAlert("💥 HOMERUN!", `빛의 비거리! 초대형 홈런 작렬`, "text-amber-500", "rgba(245,158,11,0.7)");
+            } else if (currentResultType === 'SINGLE') {
+                triggerVisualAlert("HIT! 🏃‍♂️", "1루타 안타 성공! 주자 진루 개시", "text-emerald-400", "rgba(16,185,129,0.6)");
+            } else if (currentResultType === 'DOUBLE') {
+                triggerVisualAlert("💥 DOUBLE!", "시원한 2루타! 득점권 주자 도달", "text-sky-400", "rgba(6,182,212,0.6)");
+            } else if (currentResultType === 'OUT') {
+                outCount++;
+                triggerVisualAlert("OUT!", "수비수가 기하학적 수비로 타구를 잡았습니다.", "text-rose-500", "rgba(244,63,94,0.6)");
+            } else if (currentResultType === 'FOUL') {
+                triggerVisualAlert("FOUL ⚠️", "직선 파울라인 영역 밖으로 이탈!", "text-pink-500", "rgba(244,63,94,0.6)");
+            }
+
+            // 루상 상황 다이아몬드 UI 갱신
+            document.getElementById('base-1').className = `absolute w-3.5 h-3.5 border transform rotate-45 top-[23px] right-1.5 transition-colors duration-300 ${runnerOnBase[1] ? 'bg-amber-500 border-amber-500 shadow-[0_0_8px_#f59e0b]' : 'border-slate-500 bg-transparent'}`;
+            document.getElementById('base-2').className = `absolute w-3.5 h-3.5 border transform rotate-45 top-1.5 left-[23px] transition-colors duration-300 ${runnerOnBase[2] ? 'bg-amber-500 border-amber-500 shadow-[0_0_8px_#f59e0b]' : 'border-slate-500 bg-transparent'}`;
+            document.getElementById('base-3').className = `absolute w-3.5 h-3.5 border transform rotate-45 top-[23px] left-1.5 transition-colors duration-300 ${runnerOnBase[3] ? 'bg-amber-500 border-amber-500 shadow-[0_0_8px_#f59e0b]' : 'border-slate-500 bg-transparent'}`;
+
+            // 3D 맵 위의 공격 아기독수리 주자 마스코트 노출 동기화
+            updateRunnerVisibility();
+
+            // 평행이동 화살표 가이드 갱신 (도형의 이동 오버레이 활성화 시)
+            if (overlays.translate) {
+                renderTranslationVectors();
+            }
+
+            // 타석 카운트 초기화 후 대기
+            ballCount = 0;
+            strikeCount = 0;
+            updateCountsUI();
+        }
+
+        // 주자 마스코트 활성화 제어
+        function updateRunnerVisibility() {
+            // 정적 베이스 주자 표시는 동적 베이스러너(runners) 애니메이션이 활성화되어 있을 때 자동으로 숨겨져 시각적 오류 차단
+            const staticRunnersVisible = (gameState !== 'RUNNING');
+            
+            // 만약 현재 질주 중인 동적 베이스러너들이 끝났다면 실제 베이스 자리에 주자를 띄움
+            if (staticRunnersVisible) {
+                // Three.js 가상 메쉬 제거 후, 러너들이 베이스에 가만히 서 있는 정밀 상태 가시화 지원
+                characters.runners.forEach(r => r.destroy());
+                characters.runners = [];
+
+                for (let i = 1; i <= 3; i++) {
+                    if (runnerOnBase[i]) {
+                        const staticRunner = new BaseRunner(i, i, null);
+                        staticRunner.mesh.rotation.y = Math.PI; // 투수 마운드 응시
+                        characters.runners.push(staticRunner);
+                    }
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK:Binding UI elements... ---
+        // 데이터 입력 및 슬라이더 변화 동적 제어
+        const sliderBa = document.getElementById('slider-ba');
+        const sliderObp = document.getElementById('slider-obp');
+        const sliderSlg = document.getElementById('slider-slg');
+
+        function updateSlidersAndProbabilities() {
+            battingAvg = parseFloat(sliderBa.value);
+            onBaseAvg = parseFloat(sliderObp.value);
+            sluggingAvg = parseFloat(sliderSlg.value);
+
+            document.getElementById('val-ba').textContent = battingAvg.toFixed(3).substring(1);
+            document.getElementById('val-obp').textContent = onBaseAvg.toFixed(3).substring(1);
+            document.getElementById('val-slg').textContent = sluggingAvg.toFixed(3).substring(1);
+
+            // OPS 계산 및 바 채우기
+            const ops = onBaseAvg + sluggingAvg;
+            document.getElementById('val-ops').textContent = ops.toFixed(3);
+            
+            // 게이지 비례 조정
+            const percent = Math.min(100, Math.max(0, ((ops - 0.400) / 1.0) * 100));
+            document.getElementById('bar-ops').style.width = percent + '%';
+
+            // 세이버메트릭스 예측 비율 출력
+            const hrProb = sluggingAvg * 0.35 * 100;
+            const hitProb = battingAvg * 1.1 * 100;
+            const outProb = 100 - (hrProb + hitProb);
+
+            document.getElementById('prob-hr').textContent = hrProb.toFixed(1) + '%';
+            document.getElementById('prob-hit').textContent = hitProb.toFixed(1) + '%';
+            document.getElementById('prob-out').textContent = outProb.toFixed(1) + '%';
+
+            // [수학 3: 원의 방정식과 수비 시프트 동적 연계 설계]
+            if (overlays.circle) {
+                applyCircleShift();
+            }
+        }
+
+        // 원의 수비 시프트 가이드를 바탕으로 한 야수 이동 및 구체적 원의 방정식 렌더링
+        function applyCircleShift() {
+            const dynamicRadius = sluggingAvg > 0.520 ? 32 : 24;
+            
+            // 기존 3D 가이드 원 궤적 재생성
+            const circlePoints = [];
+            for (let i = 0; i <= 64; i++) {
+                const theta = (i / 64) * Math.PI * 2;
+                circlePoints.push(new THREE.Vector3(dynamicRadius * Math.cos(theta), 0.025, dynamicRadius * Math.sin(theta)));
+            }
+            guideCircleMesh.geometry.setFromPoints(circlePoints);
+
+            // 외야수 3명(LF, CF, RF)을 원의 방정식을 활용하여 외야 가이드 라인을 타격 성향에 맞춤 배치
+            const angles = {
+                lf: Math.PI * 0.65,  // 117도 부근 원호
+                cf: Math.PI * 0.5,   // 90도 (Z축 센터)
+                rf: Math.PI * 0.35   // 63도 부근 원호
+            };
+
+            Object.keys(angles).forEach(key => {
+                const angle = angles[key];
+                const tx = dynamicRadius * Math.cos(angle);
+                const tz = dynamicRadius * Math.sin(angle);
+
+                // 야수 이동 타겟 좌표 수정
+                fielderPositions[key].currentX = tx;
+                fielderPositions[key].currentZ = tz;
+
+                // 마스코트 즉각 기하이동
+                characters.fielders[key].position.set(tx, 0.05, tz);
+            });
+            
+            updateMathBoard();
+        }
+
+        // --- 시뮬레이터 조작 동작 핸들러 ---
+
+        // 1. 투구 동작 개시 (PITCH)
+        document.getElementById('btn-pitch').addEventListener('click', () => {
+            if (gameState !== 'IDLE' && gameState !== 'PLAY_END') return;
+            
+            // 배트 회전 초기화
+            const bat = characters.batter.getObjectByName("baseball_bat");
+            if (bat) bat.rotation.set(0.6, 0.4, -0.6);
+
+            // 스트라이크 코스 여부 결정 (60% 확률)
+            pitchIsStrike = Math.random() < 0.6;
+
+            gameState = 'PITCHING';
+            hitTimeElapsed = 0;
+            ball.position.copy(pitchStartPos);
+
+            document.getElementById('btn-pitch').disabled = true;
+            document.getElementById('btn-hit').disabled = false; // 공이 날아오는 동안 타격 기회 활성화!
+            document.getElementById('log-text').textContent = "투구 완료! 공이 날아옵니다! 타이밍에 맞춰 [타격(SWING)] 버튼을 누르세요!";
+        });
+
+        // 2. 타격 피드백 동작 (HIT / SWING)
+        document.getElementById('btn-hit').addEventListener('click', () => {
+            if (gameState !== 'PITCHING') return;
+
+            // 배트 휘두르는 회전 애니메이션 연출 (image_1ed857.jpg 타격 자세 모션 모방)
+            const bat = characters.batter.getObjectByName("baseball_bat");
+            if (bat) {
+                bat.rotation.set(-0.2, 1.8, -1.8);
+            }
+
+            // 날아오는 타이밍(hitTimeElapsed)에 근거한 스윙 판정
+            // 0.45~0.85초 사이가 홈플레이트 타격 성공 존!
+            const timing = hitTimeElapsed;
+            if (timing < 0.45 || timing > 0.85) {
+                // 타이밍 어긋남: 헛스윙 스트라이크 처리
+                gameState = 'IDLE';
+                ball.position.copy(pitchStartPos);
+                strikeCount++;
+                document.getElementById('log-text').textContent = "헛스윙! 타구 타이밍을 맞추지 못했습니다.";
+                triggerVisualAlert("STRIKE / SWING", "헛스윙 스트라이크!", "text-red-500", "rgba(239,68,68,0.6)");
+                document.getElementById('btn-hit').disabled = true;
+                updateCountsUI();
+                setTimeout(() => { checkBaseRunnerCondition(); }, 1200);
+                return;
+            }
+
+            // 타격 타이밍 성공: 세이버메트릭스 확률 기반 최종 안타/아웃 처리
+            gameState = 'HITTING';
+            hitTimeElapsed = 0;
+            ball.position.copy(hitStartPos);
+            document.getElementById('btn-hit').disabled = true;
+
+            const message = calculateHitResult();
+            document.getElementById('log-text').textContent = `[타격 결과]: ${message}`;
+
+            // [가장 가까운 야수 연산] - 오직 한 명의 야수만 공의 낙구 지점으로 추적 이동하도록 키값 선점!
+            let minDistance = Infinity;
+            activeFielderKey = 'cf'; // 디폴트 중견수
+
+            Object.keys(fielderPositions).forEach(key => {
+                const charF = characters.fielders[key];
+                const dist = charF.position.distanceTo(targetLandingSpot);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    activeFielderKey = key;
+                }
+            });
+        });
+
+        // 3. 야수 수비이동 및 주자 평행이동 개시
+        document.getElementById('btn-defense').addEventListener('click', () => {
+            if (gameState !== 'FIELDING') return;
+            document.getElementById('btn-defense').disabled = true;
+            document.getElementById('log-text').textContent = `선정된 야수(${fielderPositions[activeFielderKey].label})가 최단거리 수비이동을 실시합니다.`;
+        });
+
+        // 4. 시뮬레이션 상태 완전 초기화
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            gameState = 'IDLE';
+            ball.position.copy(pitchStartPos);
+            ballCount = 0;
+            strikeCount = 0;
+            outCount = 0;
+            runnerOnBase[1] = runnerOnBase[2] = runnerOnBase[3] = false;
+            updateCountsUI();
+            updateRunnerVisibility();
+            translationVectorsGroup.clear();
+            
+            // 야수들 제자리 평행이동 복귀
+            Object.keys(fielderPositions).forEach(key => {
+                const fData = fielderPositions[key];
+                characters.fielders[key].position.set(fData.x, 0.05, fData.z);
+                characters.fielders[key].lookAt(0, 0.05, 0); // 다시 홈플레이트 응시
+            });
+
+            // 배트 회전 각도 초기화
+            const bat = characters.batter.getObjectByName("baseball_bat");
+            if (bat) bat.rotation.set(0.6, 0.4, -0.6);
+
+            document.getElementById('btn-pitch').disabled = false;
+            document.getElementById('btn-hit').disabled = true;
+            document.getElementById('btn-defense').disabled = true;
+            document.getElementById('log-text').textContent = "초기화되었습니다. [투구(PITCH)] 버튼을 누르세요.";
+        });
+
+        // --- STREAMING_CHUNK:Binding overlay handlers... ---
+        // 수학 개념 오버레이 필터 스위치 토글 구현
+        function toggleOverlay(key, buttonId) {
+            overlays[key] = !overlays[key];
+            const btn = document.getElementById(buttonId);
+            const indicator = btn.querySelector('.indicator-dot');
+            
+            if (overlays[key]) {
+                btn.classList.replace('text-slate-400', 'text-slate-100');
+                btn.classList.replace('border-slate-700', 'bg-slate-800');
+                indicator.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] indicator-dot";
+                
+                if (key === 'coord') {
+                    btn.classList.add('border-emerald-500', 'shadow-[0_0_12px_rgba(16,185,129,0.25)]');
+                    gridHelper.visible = true;
+                    axisHelperX.visible = true;
+                    axisHelperZ.visible = true;
+                    distanceLineMesh.visible = true;
+                } else if (key === 'line') {
+                    btn.classList.add('border-pink-500', 'shadow-[0_0_12px_rgba(244,63,94,0.25)]');
+                    foulLineLeft.visible = true;
+                    foulLineRight.visible = true;
+                } else if (key === 'circle') {
+                    btn.classList.add('border-cyan-500', 'shadow-[0_0_12px_rgba(6,182,212,0.25)]');
+                    guideCircleMesh.visible = true;
+                    applyCircleShift();
+                } else if (key === 'translate') {
+                    btn.classList.add('border-purple-500', 'shadow-[0_0_12px_rgba(168,85,247,0.25)]');
+                    renderTranslationVectors();
+                }
+            } else {
+                btn.classList.replace('text-slate-100', 'text-slate-400');
+                btn.classList.replace('bg-slate-800', 'border-slate-700');
+                indicator.className = "w-2 h-2 rounded-full bg-slate-700 indicator-dot";
+                btn.classList.remove('border-emerald-500', 'border-pink-500', 'border-cyan-500', 'border-purple-500', 'shadow-[0_0_12px_rgba(16,185,129,0.25)]', 'shadow-[0_0_12px_rgba(244,63,94,0.25)]', 'shadow-[0_0_12px_rgba(6,182,212,0.25)]', 'shadow-[0_0_12px_rgba(168,85,247,0.25)]');
+                
+                if (key === 'coord') {
+                    gridHelper.visible = false;
+                    axisHelperX.visible = false;
+                    axisHelperZ.visible = false;
+                    distanceLineMesh.visible = false;
+                } else if (key === 'line') {
+                    foulLineLeft.visible = false;
+                    foulLineRight.visible = false;
+                } else if (key === 'circle') {
+                    guideCircleMesh.visible = false;
+                    // 야수들 수비 시프트 원위치 복원
+                    Object.keys(fielderPositions).forEach(fKey => {
+                        const fData = fielderPositions[fKey];
+                        characters.fielders[fKey].position.set(fData.x, 0.05, fData.z);
+                    });
+                } else if (key === 'translate') {
+                    translationVectorsGroup.clear();
+                }
+            }
+
+            updateMathBoard();
+        }
+
+        // 토글 이벤트 리스너 마운트
+        document.getElementById('toggle-coord').addEventListener('click', () => toggleOverlay('coord', 'toggle-coord'));
+        document.getElementById('toggle-line').addEventListener('click', () => toggleOverlay('line', 'toggle-line'));
+        document.getElementById('toggle-circle').addEventListener('click', () => toggleOverlay('circle', 'toggle-circle'));
+        document.getElementById('toggle-translate').addEventListener('click', () => toggleOverlay('translate', 'toggle-translate'));
+
+        // 슬라이더 이벤트 리스너 마운트
+        sliderBa.addEventListener('input', updateSlidersAndProbabilities);
+        sliderObp.addEventListener('input', updateSlidersAndProbabilities);
+        sliderSlg.addEventListener('input', updateSlidersAndProbabilities);
+
+        // --- 론칭 스타트업 구동 ---
+        window.onload = function() {
+            init();
+            updateSlidersAndProbabilities();
+            animate();
+            updateMathBoard();
+        };
+
+    </script>
+</body>
+</html>
