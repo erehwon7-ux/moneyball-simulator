@@ -1,621 +1,2501 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>야구로 배우는 데이터</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style>
-  :root{
-    --bg:#0a131c; --bg2:#0b1722; --panel:#11212f; --panel2:#16293a; --line:#243a4e; --line2:#1b2e3f;
-    --ink:#e9eff5; --muted:#90a6b8; --faint:#5f7689;
-    --info:#2dd4bf; --info-soft:#0e2e2b; --info-line:#1d514c;
-    --math:#fbbf24; --math-soft:#2c2410; --math-line:#564718;
-    --steel:#5aa2f0; --steel-soft:#11283f; --warm:#fb923c; --warm-line:#5a3b1d;
-    --good:#34d399; --bad:#f87171; --field:#2f9e5f;
-    --shadow:0 2px 8px rgba(0,0,0,.35), 0 18px 50px rgba(0,0,0,.35);
-    --shadow-sm:0 1px 3px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
-    --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
-    --vizh:clamp(340px, 58vh, 600px);
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;font-family:var(--sans);color:var(--ink);
-    background:radial-gradient(130% 90% at 50% -10%, #12283a 0%, var(--bg) 55%, var(--bg2) 100%);
-    -webkit-font-smoothing:antialiased;letter-spacing:-0.01em;}
-  .app{width:100%;max-width:1640px;margin:0 auto;padding:14px 22px 26px;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>머니볼 세이버메트릭스 & 도형의 방정식 3D 시뮬레이터 v5.0</title>
+    <!-- Google Fonts & KaTeX CDN for High-Performance Math Equations -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        /* Pure CSS Stylesheet - Optimized, Premium Look with No Tailwind CDN Dependencies */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        .mono {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        
+        /* 3D and UI Layering */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        #labels-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            overflow: hidden;
+        }
+        
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Scoreboard (Top Panel) */
+        .scoreboard {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 900px;
+            padding: 12px 24px;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .scoreboard-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .score-box {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            text-align: center;
+        }
+        .team-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 18px;
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+        }
+        .team-name {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .team-score {
+            font-size: 22px;
+            font-weight: 900;
+        }
+        .team-score.home { color: #f59e0b; }
+        .team-score.away { color: #cbd5e1; }
+        
+        .bso-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .bso-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bso-label {
+            width: 12px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 1px solid #475569;
+            transition: all 0.2s;
+        }
+        .dot-b.active { background: #10b981; border-color: #34d399; box-shadow: 0 0 8px #10b981; }
+        .dot-s.active { background: #f59e0b; border-color: #fbbf24; box-shadow: 0 0 8px #f59e0b; }
+        .dot-o.active { background: #f43f5e; border-color: #f87171; box-shadow: 0 0 8px #f43f5e; }
+        
+        .diamond-tracker {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+            border-radius: 6px;
+        }
+        .base-node {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 1px solid #64748b;
+            transform: rotate(45deg);
+            background: transparent;
+            transition: all 0.3s;
+        }
+        #base-node-1 { top: 16px; right: 4px; }
+        #base-node-2 { top: 4px; left: 16px; }
+        #base-node-3 { top: 16px; left: 4px; }
+        .base-node.active {
+            background: #f59e0b;
+            border-color: #fbbf24;
+            box-shadow: 0 0 8px #f59e0b;
+        }
 
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#1d3b55,#0e2233);
-    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:var(--shadow-sm);}
-  .brand h1{font-size:21px;font-weight:800;margin:0;letter-spacing:-0.02em;}
-  .brand .sub{font-size:12.5px;color:var(--muted);margin-top:1px;}
-  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--info);}
+        /* Side Control Panels */
+        .side-panel {
+            position: fixed;
+            top: 110px;
+            bottom: 120px;
+            width: 320px;
+            padding: 20px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .left-panel { left: 16px; }
+        .right-panel { right: 16px; }
+        
+        /* Premium Tab System */
+        .tab-bar {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #1e293b;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Controllers & Interactive Components */
+        .dropdown-select {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            outline: none;
+            cursor: pointer;
+        }
+        .slider-wrapper {
+            margin-bottom: 16px;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 4px;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+        
+        .box-dark {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .ops-badge-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        /* Math Overlay Switch Buttons */
+        .geo-btn {
+            width: 100%;
+            padding: 12px;
+            text-align: left;
+            background: transparent;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        .geo-btn-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #475569;
+            transition: all 0.2s;
+        }
+        .geo-btn.active-coord { border-color: #10b981; color: white; background: rgba(16, 185, 129, 0.05); }
+        .geo-btn.active-coord .geo-btn-dot { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .geo-btn.active-line { border-color: #f43f5e; color: white; background: rgba(244, 63, 94, 0.05); }
+        .geo-btn.active-line .geo-btn-dot { background: #f43f5e; box-shadow: 0 0 8px #f43f5e; }
+        .geo-btn.active-circle { border-color: #06b6d4; color: white; background: rgba(6, 182, 212, 0.05); }
+        .geo-btn.active-circle .geo-btn-dot { background: #06b6d4; box-shadow: 0 0 8px #06b6d4; }
+        .geo-btn.active-translate { border-color: #a855f7; color: white; background: rgba(168, 85, 247, 0.05); }
+        .geo-btn.active-translate .geo-btn-dot { background: #a855f7; box-shadow: 0 0 8px #a855f7; }
 
-  .tabs{display:flex;gap:5px;background:rgba(13,28,40,.7);border:1px solid var(--line);border-radius:14px;padding:5px;box-shadow:var(--shadow-sm);}
-  .tabs button{border:0;background:transparent;border-radius:10px;padding:10px 18px;cursor:pointer;color:var(--muted);
-    font-family:inherit;font-size:14px;font-weight:700;transition:.18s;position:relative;white-space:nowrap;}
-  .tabs button .n{font-size:10px;letter-spacing:.1em;color:var(--faint);margin-right:6px;font-weight:700;}
-  .tabs button:hover{color:var(--ink);}
-  .tabs button.active{color:var(--ink);background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);}
-  .tabs button[data-i="0"].active{box-shadow:inset 0 0 0 1px var(--steel), 0 0 16px rgba(90,162,240,.18);}
-  .tabs button[data-i="1"].active{box-shadow:inset 0 0 0 1px var(--math), 0 0 16px rgba(251,191,36,.16);}
-  .tabs button[data-i="2"].active{box-shadow:inset 0 0 0 1px var(--info), 0 0 16px rgba(45,212,191,.16);}
+        /* Bottom Controls Bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 44px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 900px;
+            padding: 14px 24px;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .btn-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .action-btn {
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-emerald { background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+        .btn-amber { background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+        .btn-sky { background: linear-gradient(135deg, #0284c7, #06b6d4); box-shadow: 0 4px 12px rgba(6,182,212,0.3); }
+        .btn-purple { background: linear-gradient(135deg, #7e22ce, #a855f7); box-shadow: 0 4px 12px rgba(168,85,247,0.3); }
+        .btn-slate { background: #334155; color: #cbd5e1; }
+        .action-btn:disabled { opacity: 0.25; cursor: not-allowed; box-shadow: none; }
+        
+        .timing-bar-container {
+            flex: 1;
+            max-width: 260px;
+            position: relative;
+        }
+        .timing-track {
+            width: 100%;
+            height: 12px;
+            background: #1e293b;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #334155;
+        }
+        .timing-perfect-zone {
+            position: absolute;
+            left: 45%;
+            width: 37%;
+            height: 100%;
+            background: rgba(16, 185, 129, 0.35);
+        }
+        .timing-indicator {
+            width: 0%;
+            height: 100%;
+            background: #f59e0b;
+        }
 
-  .module{display:none;animation:fade .3s ease;}
-  .module.show{display:block;}
-  @keyframes fade{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);}
+        /* Footer Log Banner */
+        .log-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 36px;
+            background: #090d16;
+            border-top: 1px solid #1e293b;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 11px;
+            gap: 12px;
+        }
+        .live-badge {
+            background: rgba(244, 63, 94, 0.15);
+            color: #f43f5e;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
 
-  /* ===== 모듈1 : 좌측 세로 현황판 + 넓은 필드 ===== */
-  .m1grid{display:grid;grid-template-columns:200px 1fr 140px;gap:14px;}
-  @media(max-width:980px){.m1grid{grid-template-columns:1fr;}}
-  .actcol{display:flex;flex-direction:column;gap:10px;}
-  @media(max-width:980px){.actcol{flex-direction:row;flex-wrap:wrap;align-items:center;}}
+        /* Central Visual Alert Popups */
+        #visual-alert {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .alert-card {
+            background: rgba(10, 15, 26, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            padding: 24px 48px;
+            border-radius: 24px;
+            text-align: center;
+            transform: scale(0.7);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #visual-alert.show { opacity: 1; }
+        #visual-alert.show .alert-card { transform: scale(1); }
 
-  .status{display:flex;flex-direction:column;gap:12px;padding:14px;}
-  .sb-top{display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:15px;}
-  .sb-top .half{font-size:11px;color:var(--info);background:var(--info-soft);border:1px solid var(--info-line);padding:3px 8px;border-radius:999px;}
-  .sb-score{background:#0c1822;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;}
-  .sb-score .lab{font-size:11px;letter-spacing:.12em;color:var(--faint);font-weight:700;}
-  .led{font-family:var(--mono);font-weight:800;}
-  .sb-score .led{font-size:30px;color:var(--math);text-shadow:0 0 14px rgba(251,191,36,.45);}
-  .sb-counts{display:flex;flex-direction:column;gap:9px;}
-  .crow{display:flex;align-items:center;justify-content:space-between;}
-  .ck{font-size:12px;color:var(--muted);font-weight:700;}
-  .dots{display:flex;gap:5px;}
-  .dot{width:13px;height:13px;border-radius:50%;background:#0e1c28;border:1px solid #2a4256;transition:.15s;}
-  .dot.b{background:var(--good);border-color:var(--good);box-shadow:0 0 8px rgba(52,211,153,.5);}
-  .dot.s{background:var(--math);border-color:var(--math);box-shadow:0 0 8px rgba(251,191,36,.5);}
-  .dot.o{background:var(--bad);border-color:var(--bad);box-shadow:0 0 8px rgba(248,113,113,.5);}
-  .sb-terms{border-top:1px solid var(--line2);padding-top:10px;flex:1;min-height:0;display:flex;flex-direction:column;}
-  .sb-th{font-size:11px;letter-spacing:.06em;color:var(--faint);font-weight:800;margin-bottom:8px;}
-  #terms{overflow:auto;max-height:calc(var(--vizh) - 210px);padding-right:2px;}
-  .termcard{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--info);border-radius:10px;padding:8px 10px;margin-bottom:7px;}
-  .termcard b{font-size:12.5px;} .termcard p{margin:2px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45;}
-  .termempty{color:var(--faint);font-size:12.5px;line-height:1.55;}
+        /* Fixed-positioned 2D HUD Overlays on top of characters */
+        .player-label {
+            position: fixed;
+            z-index: 15;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #475569;
+            color: #f1f5f9;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: border-color 0.2s;
+        }
+        .player-label:hover {
+            border-color: #06b6d4;
+        }
+        .label-batter-style {
+            background: linear-gradient(135deg, #e11d48, #f59e0b);
+            border-color: #f43f5e;
+            box-shadow: 0 0 12px rgba(244,63,94,0.5);
+        }
 
-  .fieldcol{display:flex;flex-direction:column;gap:12px;}
-  .stage{position:relative;height:var(--vizh);border-radius:14px;overflow:hidden;
-    border:1px solid var(--line);background:#081019;box-shadow:inset 0 0 60px rgba(0,0,0,.5);}
-  #field3d{width:100%;height:100%;}
+        /* Fullscreen Interactive Scatter Plot Modal */
+        .fullscreen-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(7, 10, 18, 0.95);
+            z-index: 50;
+            display: none;
+            padding: 30px;
+        }
+        .modal-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            gap: 24px;
+        }
+        .modal-visual-area {
+            flex: 1;
+            position: relative;
+            background: #0f172a;
+            border-radius: 16px;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+        }
+        .modal-detail-panel {
+            width: 340px;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .svg-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        .svg-canvas:active { cursor: grabbing; }
 
-  .labels{position:absolute;inset:0;pointer-events:none;}
-  .poschip{position:absolute;transform:translate(-50%,-120%);pointer-events:auto;cursor:pointer;
-    background:rgba(13,26,38,.86);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:999px;padding:3px 8px 3px 9px;
-    font-size:11px;font-weight:800;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow-sm);
-    display:flex;align-items:center;gap:5px;transition:transform .15s, border-color .15s;}
-  .poschip span{font-family:var(--mono);font-size:9px;font-weight:700;color:#06222b;background:var(--steel);border-radius:6px;padding:1px 4px;}
-  .poschip:hover{transform:translate(-50%,-132%);border-color:var(--steel);}
-  .poschip.bat span{background:var(--warm);} .poschip.bat:hover{border-color:var(--warm);}
-
-  .poscard-back{position:absolute;inset:0;background:rgba(4,10,16,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:.2s;}
-  .poscard-back.show{opacity:1;pointer-events:auto;}
-  .poscard{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);
-    background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 24px 22px;width:min(340px,86%);
-    box-shadow:0 24px 60px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.8,.3,1);text-align:center;}
-  .poscard.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
-  .poscard .badge{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,#2b6db5,#1b3f63);color:#fff;
-    font-family:var(--mono);font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 13px;box-shadow:0 0 20px rgba(90,162,240,.3);}
-  .poscard.bat .badge{background:linear-gradient(135deg,#e26a36,#a23f1c);box-shadow:0 0 20px rgba(251,146,60,.3);}
-  .poscard h4{margin:0;font-size:21px;font-weight:800;}
-  .poscard h4 span{font-size:14px;color:var(--muted);font-weight:600;}
-  .poscard .role{color:var(--muted);font-size:13.5px;margin:9px 0 15px;line-height:1.65;}
-  .poscard .skill{text-align:left;background:var(--steel-soft);border:1px solid #1d4060;border-radius:12px;padding:12px 14px;font-size:13.5px;color:#bcd8f4;line-height:1.5;}
-  .poscard.bat .skill{background:#2a1810;border-color:var(--warm-line);color:#f0c4a4;}
-  .poscard .skill .k{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;margin-bottom:3px;opacity:.85;}
-  .poscard .closex{position:absolute;top:13px;right:15px;border:0;background:transparent;font-size:16px;color:var(--faint);cursor:pointer;}
-
-  .bubble{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.86);
-    background:rgba(8,16,24,.9);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:16px 28px;
-    font-size:26px;font-weight:800;letter-spacing:-0.01em;opacity:0;transition:.22s cubic-bezier(.2,.8,.3,1);pointer-events:none;text-align:center;max-width:80%;box-shadow:0 16px 50px rgba(0,0,0,.5);}
-  .bubble small{display:block;font-size:13.5px;font-weight:500;color:var(--muted);margin-top:6px;letter-spacing:0;}
-  .bubble.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
-
-  .actcol .bigbtn{width:100%;}
-  .bigbtn{border:0;border-radius:13px;padding:15px;font-size:17px;font-weight:800;color:#fff;cursor:pointer;
-    font-family:inherit;letter-spacing:-0.01em;transition:.15s;}
-  .bigbtn .en{font-size:12px;opacity:.8;font-weight:600;margin-left:6px;}
-  .bigbtn:hover{transform:translateY(-1px);filter:brightness(1.07);}
-  .bigbtn:active{transform:translateY(1px);}
-  .bigbtn.pitch{background:linear-gradient(180deg,#3b82c4,#2563a0);box-shadow:0 6px 18px rgba(37,99,160,.35);}
-  .bigbtn.swing{background:linear-gradient(180deg,#e2823f,#c2632a);box-shadow:0 6px 18px rgba(194,99,42,.32);}
-  .bigbtn.reset{background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:15px 16px;font-size:14px;}
-  .hint{text-align:center;color:var(--faint);font-size:12px;line-height:1.5;margin-top:4px;}
-  .hint b{color:var(--steel);}
-
-  /* ===== 모듈2·3 : 좌우 분할 ===== */
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;}
-  @media(max-width:880px){.split{grid-template-columns:1fr;}}
-  .vizpanel{padding:12px;}
-  .svgwrap{height:var(--vizh);background:#0a1620;border:1px solid var(--line2);border-radius:12px;display:flex;}
-  svg{width:100%;height:100%;display:block;touch-action:manipulation;}
-  .m3modes{display:flex;gap:6px;margin-bottom:8px;}
-  .m3mode{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;}
-  .m3mode.active{color:var(--ink);background:var(--info-soft);border-color:var(--info-line);box-shadow:0 0 12px rgba(45,212,191,.18);}
-  #modeReg.active{background:var(--math-soft);border-color:var(--math-line);box-shadow:0 0 12px rgba(251,191,36,.18);}
-
-  .guide{padding:20px 22px;display:flex;flex-direction:column;gap:12px;}
-  .guide .kicker{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;}
-  .kicker.math{color:var(--math);} .kicker.info{color:var(--info);}
-  .guide h3{margin:0;font-size:23px;font-weight:800;letter-spacing:-0.02em;}
-  .guide .lead{color:var(--muted);font-size:14px;line-height:1.6;margin:0;}
-  .guide .lead b{color:var(--ink);}
-  .howto{list-style:none;counter-reset:s;padding:0;margin:2px 0;display:flex;flex-direction:column;gap:9px;}
-  .howto li{counter-increment:s;position:relative;padding:10px 12px 10px 42px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;font-size:13.5px;line-height:1.5;}
-  .howto li::before{content:counter(s);position:absolute;left:11px;top:50%;transform:translateY(-50%);
-    width:22px;height:22px;border-radius:7px;background:var(--info-soft);color:var(--info);border:1px solid var(--info-line);
-    font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;}
-  .howto.m li::before{background:var(--math-soft);color:var(--math);border-color:var(--math-line);}
-  .howto b{color:var(--ink);}
-  .fbox{background:#0c1822;border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
-  .fbox .flabel{font-size:11px;letter-spacing:.06em;color:var(--faint);font-weight:800;margin-bottom:5px;}
-  .fbox .formula{font-family:var(--mono);font-size:16px;color:var(--math);}
-  .calc{background:#0c1822;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:16px;line-height:1.8;min-height:54px;}
-  .calc .step{font-family:var(--mono);font-size:14px;color:var(--ink);}
-  .calc .res{color:var(--math);font-weight:800;font-size:19px;}
-  .calc.info .res{color:var(--info);}
-  .calc b{color:var(--ink);}
-  .calc .muted{color:var(--muted);font-size:14px;}
-  .ghost{align-self:flex-start;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;}
-  .ghost:hover{border-color:var(--math-line);}
-  .ghost.on{border-color:var(--math);background:var(--math-soft);color:var(--math);}
-  .tip{color:var(--faint);font-size:12.5px;line-height:1.55;margin:0;}
-  .tip b{color:var(--muted);}
-  .addrow{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding-top:12px;border-top:1px solid var(--line2);}
-  .addrow label{font-weight:700;font-size:13px;color:var(--muted);}
-  .addrow input{width:78px;padding:9px 11px;border:1px solid var(--line);background:#0c1822;color:var(--ink);border-radius:10px;font-size:15px;font-family:var(--mono);}
-  .addrow input:focus{outline:none;border-color:var(--info-line);}
-  .addrow .ghost.add{border-color:var(--info-line);color:var(--info);}
-  .simcard{background:var(--info-soft);border:1px solid var(--info-line);border-radius:12px;padding:13px;font-size:14px;line-height:1.65;color:#bdeae3;display:none;}
-  .simcard.show{display:block;animation:fade .3s;}
-  .simcard b{color:var(--info);font-weight:800;}
-</style>
+        /* Customized Inputs & Utility Classes */
+        .flex-col-gap { display: flex; flex-direction: column; gap: 12px; }
+        .input-inline { display: flex; gap: 6px; }
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+        }
+        .control-tip {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        
+        /* Custom Fine Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 2px; }
+    </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="brand">
-      <div class="logo">⚾</div>
-      <div>
-        <div class="eyebrow">정보 × 수학 융합</div>
-        <h1>야구로 배우는 데이터</h1>
-        <div class="sub">야구 → 좌표평면 → 산점도, 그리고 인공지능 분류로</div>
-      </div>
-    </div>
-    <div class="tabs">
-      <button data-i="0" class="active" onclick="showTab(0)"><span class="n">STEP 1</span>야구 배우기</button>
-      <button data-i="1" onclick="showTab(1)"><span class="n">STEP 2</span>좌표평면</button>
-      <button data-i="2" onclick="showTab(2)"><span class="n">STEP 3</span>산점도</button>
-    </div>
-  </header>
 
-  <!-- ===================== 모듈 1 ===================== -->
-  <div class="module show" id="mod0">
-    <div class="m1grid">
-      <aside class="status panel">
-        <div class="sb-top"><span>1회</span><span class="half">공격</span></div>
-        <div class="sb-score"><span class="lab">SCORE</span><span class="led" id="score">0</span></div>
-        <div class="sb-counts">
-          <div class="crow"><span class="ck">볼 (Ball)</span><div class="dots" id="dB"></div></div>
-          <div class="crow"><span class="ck">스트라이크 (Strike)</span><div class="dots" id="dS"></div></div>
-          <div class="crow"><span class="ck">아웃 (Out)</span><div class="dots" id="dO"></div></div>
+    <!-- 3D Graphics WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- 2D HUD Screen Projected Labels Layer -->
+    <div id="labels-container"></div>
+
+    <!-- Central Interactive Visual Alert System -->
+    <div id="visual-alert">
+        <div class="alert-card">
+            <h1 id="alert-title-main" style="font-size: 44px; font-weight: 900; letter-spacing: 2px;">HIT!</h1>
+            <p id="alert-subtitle-sub" style="font-size: 13px; color: #94a3b8; margin-top: 6px; font-weight: 600; text-transform: uppercase;"></p>
         </div>
-        <div class="sb-terms">
-          <div class="sb-th">📒 배운 용어</div>
-          <div id="terms"><div class="termempty">투구·타격 버튼을 눌러보세요. 새 용어가 카드로 쌓입니다.</div></div>
-        </div>
-      </aside>
-
-      <div class="fieldcol">
-        <div class="stage panel" style="padding:0;">
-          <div id="field3d"></div>
-          <div class="labels" id="labels"></div>
-          <div class="bubble" id="bubble"></div>
-          <div class="poscard-back" id="posBack" onclick="closePos()"></div>
-          <div class="poscard" id="posCard"></div>
-        </div>
-      </div>
-      <div class="actcol">
-        <button class="bigbtn pitch" onclick="pitch()">⚾ 투구<span class="en">Pitch</span></button>
-        <button class="bigbtn swing" onclick="swing()">🏏 타격<span class="en">Swing</span></button>
-        <button class="bigbtn reset" onclick="resetGame()">초기화</button>
-        <div class="hint">🧢 <b>선수를 클릭</b>하면 포지션과 역량을 볼 수 있어요</div>
-      </div>
     </div>
-  </div>
 
-  <!-- ===================== 모듈 2 ===================== -->
-  <div class="module" id="mod1">
-    <div class="split">
-      <div class="vizpanel panel"><div class="svgwrap"><svg id="svg2" viewBox="0 0 560 560" preserveAspectRatio="xMidYMid meet"></svg></div></div>
-      <div class="guide panel">
-        <span class="kicker math">STEP 2 · 수학</span>
-        <h3>두 점 사이의 거리</h3>
-        <p class="lead">야구장은 사실 <b>좌표평면</b>이에요. 홈플레이트가 원점 <b>(0, 0)</b>이고, 각 베이스는 좌표를 가집니다.</p>
-        <ol class="howto m">
-          <li>왼쪽 그래프에서 <b>베이스 두 개</b>를 클릭하세요.</li>
-          <li>두 점 사이의 <b>거리</b>가 공식으로 자동 계산됩니다.</li>
-          <li><b>파울선 보기</b>를 누르면 직선의 방정식을 볼 수 있어요.</li>
-        </ol>
-        <div class="fbox"><div class="flabel">거리 공식 (Distance Formula)</div><div class="formula">d = √((x₂−x₁)² + (y₂−y₁)²)</div></div>
-        <div class="calc" id="distCard"><span class="muted">베이스 두 개를 클릭하면 여기에 계산 과정이 나타나요.</span></div>
-        <button class="ghost" id="foulBtn" onclick="toggleFoul()">파울선 보기</button>
-        <p class="tip"><b>배우는 것:</b> 좌표평면·원점, 두 점 사이의 거리, 직선의 방정식(파울선 y=x, y=−x).</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== 모듈 3 ===================== -->
-  <div class="module" id="mod2">
-    <div class="split">
-      <div class="vizpanel panel">
-        <div class="m3modes">
-          <button id="modeCls" class="m3mode active" onclick="setMode3('cls')">① 분류 · 거리</button>
-          <button id="modeReg" class="m3mode" onclick="setMode3('reg')">② 회귀 · 오차</button>
+    <!-- Digital Scoreboard (Upper Overlay) -->
+    <div class="glass-panel scoreboard">
+        <div class="scoreboard-section">
+            <div class="score-box">
+                <span style="font-size: 9px; color: #10b981; font-weight: bold; display: block; text-transform: uppercase;">Inning</span>
+                <span class="mono" id="hud-inning-text" style="font-size: 18px; font-weight: 800;">1회말</span>
+            </div>
+            <div class="team-display">
+                <div style="text-align: right;">
+                    <span class="team-name">EAGLES</span>
+                    <span class="mono team-score home" id="score-home-val">0</span>
+                </div>
+                <span style="font-size: 14px; color: #475569; font-weight: bold; padding: 0 4px;">VS</span>
+                <div style="text-align: left;">
+                    <span class="team-name">VISITORS</span>
+                    <span class="mono team-score away" id="score-away-val">0</span>
+                </div>
+            </div>
         </div>
-        <div class="svgwrap" style="height:calc(var(--vizh) - 48px)"><svg id="svg3" viewBox="0 0 560 540" preserveAspectRatio="xMidYMid meet"></svg></div>
-      </div>
-      <div class="guide panel" id="guide3"></div>
+
+        <!-- BSO Strike Indicator and Diamond Bases -->
+        <div class="scoreboard-section">
+            <div class="bso-container">
+                <div class="bso-row">
+                    <span class="mono bso-label" style="color: #10b981;">B</span>
+                    <div class="dot dot-b"></div>
+                    <div class="dot dot-b"></div>
+                    <div class="dot dot-b"></div>
+                </div>
+                <div class="bso-row">
+                    <span class="mono bso-label" style="color: #f59e0b;">S</span>
+                    <div class="dot dot-s"></div>
+                    <div class="dot dot-s"></div>
+                </div>
+                <div class="bso-row">
+                    <span class="mono bso-label" style="color: #f43f5e;">O</span>
+                    <div class="dot dot-o"></div>
+                    <div class="dot dot-o"></div>
+                </div>
+            </div>
+            <div class="diamond-tracker">
+                <div class="base-node" id="base-node-1"></div>
+                <div class="base-node" id="base-node-2"></div>
+                <div class="base-node" id="base-node-3"></div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<script>
-/* =================================================================== */
-function showTab(i){
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active', +b.dataset.i===i));
-  document.querySelectorAll('.module').forEach((m,idx)=>m.classList.toggle('show', idx===i));
-  if(i===0 && three.renderer){ requestAnimationFrame(onResize3D); }
-}
+    <!-- Left Controller Panel (Sabermetrics Ratio Adjustable & Dynamic Coordinates Input) -->
+    <div class="glass-panel side-panel left-panel">
+        <div class="tab-bar">
+            <button class="tab-btn active" id="btn-tab-stats">타자 스탯</button>
+            <button class="tab-btn" id="btn-tab-coord">좌표평면</button>
+        </div>
 
-/* =====================================================================
-   STEP 1 — 야구 배우기
-   ===================================================================== */
-const three={};
-let count={b:0,s:0,o:0}, score=0, actions=0;
-const shownTerms=new Set();
-const TERMS={
-  "스트라이크 (Strike)":"스트라이크 존을 지나간 좋은 공을 못 친 것. 3개면 아웃!",
-  "볼 (Ball)":"스트라이크 존을 벗어난 공. 4개면 1루로 걸어 나가요.",
-  "안타 (Hit)":"타자가 공을 쳐서 안전하게 베이스로 나간 것.",
-  "홈런 (Home Run)":"공을 펜스 밖으로 쳐서 베이스를 한 바퀴 도는 것. 점수!",
-  "아웃 (Out)":"타자나 주자가 죽는 것. 한 이닝에 3개면 공수 교대.",
-  "볼넷 (Base on Balls)":"볼 4개를 골라 1루로 걸어 나가는 것.",
-  "삼진 (Strikeout)":"스트라이크 3개로 타자가 아웃되는 것."
-};
-const FIELD_POS={
-  P:  {x:0,    z:0.9},  C:  {x:0,    z:15.4},
-  '1B':{x:12.8,z:2.4},  '2B':{x:7.5, z:-6}, SS:{x:-7.5,z:-6}, '3B':{x:-12.8,z:2.4},
-  LF: {x:-19.5,z:-19.5},CF: {x:0,    z:-23.3}, RF:{x:19.5,z:-19.5},
-  BAT:{x:2.4,  z:12}
-};
-const POSITIONS={
-  P:  {ko:'투수', en:'Pitcher', role:'타자에게 공을 던져 승부하는 선수예요.', skill:'정확한 제구력과 다양한 구종, 강한 멘탈'},
-  C:  {ko:'포수', en:'Catcher', role:'투수의 공을 받고 경기 전체를 지휘해요.', skill:'순발력, 강한 어깨, 경기를 읽는 판단력'},
-  '1B':{ko:'1루수', en:'First Baseman', role:'1루를 지키며 다른 수비수의 송구를 받아요.', skill:'안정적인 포구 능력과 큰 키'},
-  '2B':{ko:'2루수', en:'Second Baseman', role:'1루와 2루 사이를 지켜요.', skill:'빠른 손놀림과 민첩성, 더블플레이 호흡'},
-  SS: {ko:'유격수', en:'Shortstop', role:'2루와 3루 사이를 지키는 내야 수비의 핵심이에요.', skill:'넓은 수비 범위, 빠른 반응, 강한 송구'},
-  '3B':{ko:'3루수', en:'Third Baseman', role:'3루를 지켜요. 강한 타구가 자주 와요.', skill:'빠른 반응속도와 강한 어깨, 담력'},
-  LF: {ko:'좌익수', en:'Left Fielder', role:'외야 왼쪽을 지켜요.', skill:'타구 판단력과 달리기'},
-  CF: {ko:'중견수', en:'Center Fielder', role:'가장 넓은 외야 중앙을 책임져요.', skill:'빠른 발과 넓은 수비 범위, 강한 어깨'},
-  RF: {ko:'우익수', en:'Right Fielder', role:'외야 오른쪽을 지켜요.', skill:'정확하고 강한 송구 능력'},
-  BAT:{ko:'타자', en:'Batter', role:'공을 쳐서 점수를 만드는 공격수예요.', skill:'정확한 타격과 좋은 선구안(좋은 공만 고르는 눈)'}
-};
-const ABBR={P:'P',C:'C','1B':'1B','2B':'2B',SS:'SS','3B':'3B',LF:'LF',CF:'CF',RF:'RF',BAT:'B'};
+        <!-- Tab 1 CONTENT: Sabermetrics Sliders -->
+        <div id="tab-content-stats" class="flex-col-gap">
+            <label style="font-size: 11px; color: #94a3b8; font-weight: bold;">가상 타자 기하 프리셋:</label>
+            <select class="dropdown-select" id="preset-picker-select">
+                <option value="preset-0">독수리 에이스 (정교한 우상단 거포)</option>
+                <option value="preset-1">장거리포 클러치 (극단적 홈런 아웃라이어)</option>
+                <option value="preset-2">출루왕 워크 (선구안 머니볼 핵심)</option>
+                <option value="preset-3">루키 신인 (발전 유망주)</option>
+            </select>
+            
+            <div class="slider-wrapper">
+                <div class="slider-header"><span>타율 (BA)</span><span class="mono" id="val-lbl-ba" style="color:#10b981;">.320</span></div>
+                <input type="range" id="slider-input-ba" min="0.100" max="0.450" step="0.005" value="0.320">
+            </div>
+            <div class="slider-wrapper">
+                <div class="slider-header"><span>출루율 (OBP)</span><span class="mono" id="val-lbl-obp" style="color:#06b6d4;">.390</span></div>
+                <input type="range" id="slider-input-obp" min="0.200" max="0.600" step="0.005" value="0.390">
+            </div>
+            <div class="slider-wrapper">
+                <div class="slider-header"><span>장타율 (SLG)</span><span class="mono" id="val-lbl-slg" style="color:#f59e0b;">.480</span></div>
+                <input type="range" id="slider-input-slg" min="0.200" max="0.800" step="0.005" value="0.480">
+            </div>
 
-function vp(){ const el=document.getElementById('field3d'); return {w:el.clientWidth||820, h:el.clientHeight||480}; }
-function initThree(){
-  const host=document.getElementById('field3d'); const {w,h}=vp();
-  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x081621); scene.fog=new THREE.Fog(0x081621, 84, 200);
+            <div class="box-dark" style="margin-top: 4px;">
+                <div class="ops-badge-container">
+                    <span style="font-size:11px; color:#94a3b8; font-weight:bold;">계산된 OPS (OBP+SLG)</span>
+                    <span class="mono" id="val-lbl-ops" style="font-size:17px; font-weight:900; color:#f43f5e;">0.870</span>
+                </div>
+                <div style="font-size:11px; color:#cbd5e1;">선수 등급: <span id="val-lbl-grade" style="font-weight:bold; color:#fbbf24;">올스타급</span></div>
+            </div>
 
-  const camera=new THREE.PerspectiveCamera(43, w/h, 0.1, 1000);
-  camera.position.set(0, 30, 32); camera.lookAt(0, -2, -6);
+            <div class="box-dark" style="background: rgba(0,0,0,0.2);">
+                <span style="color:#94a3b8; font-weight:bold; display:block; margin-bottom:4px;">🎯 통계 예측 확률 모델</span>
+                <div style="display:flex; justify-content:space-between; font-size:11px;"><span>홈런/장타</span><span class="mono" id="calc-prob-hr" style="color:#f59e0b;">16.8%</span></div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;"><span>단타/안타</span><span class="mono" id="calc-prob-hit" style="color:#10b981;">35.2%</span></div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;"><span>범타/아웃</span><span class="mono" id="calc-prob-out" style="color:#f43f5e;">48.0%</span></div>
+            </div>
+        </div>
 
-  const renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(w,h); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  host.appendChild(renderer.domElement);
+        <!-- Tab 2 CONTENT: Cartesian Coordinates Manual Positioning -->
+        <div id="tab-content-coord" class="flex-col-gap" style="display: none;">
+            <p style="font-size: 11px; color:#94a3b8; line-height:1.5;">필드 위의 수비수 HUD 명찰을 마우스로 선택한 후, 이동시킬 좌표를 평면에 지정해 기하학적 평행이동 변위와 피타고라스 경로 거리를 관찰해 봅니다.</p>
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 11px;">
+                바인딩 대상: <span id="target-fielder-name" style="font-weight:bold; color:#06b6d4;">선택 없음</span>
+            </div>
+            <div class="input-inline">
+                <input type="number" class="input-field" id="pos-input-x" placeholder="목표 X (-30 ~ 30)">
+                <input type="number" class="input-field" id="pos-input-z" placeholder="목표 Z (0 ~ 55)">
+            </div>
+            <button class="action-btn btn-sky" id="btn-trigger-move" style="width:100%;">이동 명령 실행</button>
+            
+            <div class="box-dark" id="coord-process-container" style="background: rgba(0,0,0,0.3);">
+                <span style="color:#94a3b8; display:block; margin-bottom:4px; font-weight:bold;">📐 피타고라스 공간 변위량</span>
+                <div id="math-calc-process">대상을 선택하고 이동을 시작하면 두 점 사이의 기하 거리 연산 과정이 노출됩니다.</div>
+            </div>
+        </div>
+    </div>
 
-  scene.add(new THREE.HemisphereLight(0xbcd6ee, 0x16281b, 0.72));
-  const dir=new THREE.DirectionalLight(0xffffff, 0.7); dir.position.set(10,20,12); scene.add(dir);
+    <!-- Right Academic Mathematical Overlay Guidance Panel -->
+    <div class="glass-panel side-panel right-panel">
+        <h3 style="font-size: 14px; font-weight:800; color:#fbbf24; margin-bottom:12px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">📐 도형의 방정식 분석</h3>
+        
+        <button class="geo-btn" id="tg-geo-coord"><span>1. 데카르트 좌표와 기하 거리</span><div class="geo-btn-dot"></div></button>
+        <button class="geo-btn" id="tg-geo-line"><span>2. 파울라인 직선의 방정식</span><div class="geo-btn-dot"></div></button>
+        <button class="geo-btn" id="tg-geo-circle"><span>3. 수비 범위 원의 방정식</span><div class="geo-btn-dot"></div></button>
+        <button class="geo-btn" id="tg-geo-translate"><span>4. 주자 궤적 평행이동 변위</span><div class="geo-btn-dot"></div></button>
 
-  const grass=new THREE.Mesh(new THREE.PlaneGeometry(220,220), new THREE.MeshLambertMaterial({color:0x215c36}));
-  grass.rotation.x=-Math.PI/2; scene.add(grass);
-  // 분석용 그리드(방송 화면 느낌)
-  const grid=new THREE.GridHelper(200, 40, 0x317049, 0x27583c); grid.position.y=0.03;
-  grid.material.opacity=0.3; grid.material.transparent=true; scene.add(grid);
-  const inf=new THREE.Mesh(new THREE.PlaneGeometry(24,24), new THREE.MeshLambertMaterial({color:0x8c5a30}));
-  inf.rotation.x=-Math.PI/2; inf.rotation.z=Math.PI/4; inf.position.y=0.05; scene.add(inf);
+        <!-- Dynamic Landing Ball Exploration Sub-panel -->
+        <div id="freeze-exploration-wrapper" style="display:none; background:rgba(245,158,11,0.06); border:1px dashed #f59e0b; padding:10px; border-radius:10px; margin-top:8px;">
+            <span style="font-size:11px; font-weight:bold; color:#f59e0b; display:block; margin-bottom:6px;">☄️ 타구 정지 기하학 탐구 모드</span>
+            <div style="display:flex; gap:4px; margin-bottom:6px;">
+                <button class="action-btn btn-slate" id="btn-explore-line" style="flex:1; padding:6px; font-size:10px;">직선 탐구</button>
+                <button class="action-btn btn-slate" id="btn-explore-circle" style="flex:1; padding:6px; font-size:10px;">원 탐구</button>
+            </div>
+            <div id="circle-explore-slider-box" style="display:none; margin-top:4px;">
+                <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:2px;"><span>탐색 반경(R)</span><span class="mono" id="explore-radius-lbl">10.0m</span></div>
+                <input type="range" id="explore-radius-slider" min="4" max="25" step="0.5" value="10">
+            </div>
+        </div>
 
-  function line(pts,col){ const g=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p[0],0.08,p[1])));
-    scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col}))); }
-  const B={home:[0,13.5],b1:[13.5,0],b2:[0,-13.5],b3:[-13.5,0]};
-  line([B.home,B.b1,B.b2,B.b3,B.home], 0xeaf3ee);
-  line([B.home,[30,-16.5]], 0xeaf3ee); line([B.home,[-30,-16.5]], 0xeaf3ee);
-  for(const k in B){ const base=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.2,1.5), new THREE.MeshLambertMaterial({color:k==='home'?0xffffff:0xf0efe8}));
-    base.position.set(B[k][0],0.14,B[k][1]); if(k!=='home') base.rotation.y=Math.PI/4; scene.add(base); }
-  const mound=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,0.35,24), new THREE.MeshLambertMaterial({color:0x9a6838}));
-  mound.position.set(FIELD_POS.P.x,0.18,FIELD_POS.P.z); scene.add(mound);
+        <!-- Academic Formula Board Output Box -->
+        <div class="box-dark" id="math-guidance-dashboard" style="margin-top: 12px; background: rgba(0,0,0,0.3);">
+            오버레이 필터를 클릭하거나 타격을 성공시켜 기하학적 탐구 학습 과정을 전개하십시오.
+        </div>
+    </div>
 
-  function person(x,z,col){
-    const g=new THREE.Group();
-    g.add(mesh(new THREE.CylinderGeometry(0.52,0.64,1.0,16), col, 0.6));            // 둥근 몸통
-    g.add(mesh(new THREE.SphereGeometry(0.16,12,12), col, 0.82, 0.66));             // 오른팔
-    g.add(mesh(new THREE.SphereGeometry(0.16,12,12), col, 0.82, -0.66));            // 왼팔
-    g.add(mesh(new THREE.SphereGeometry(0.66,20,20), 0xf6d9bb, 1.62));              // 큰 머리(귀엽게)
-    g.add(mesh(new THREE.SphereGeometry(0.68,20,20,0,Math.PI*2,0,Math.PI/2), col, 1.66)); // 모자 돔
-    const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.08,16), new THREE.MeshLambertMaterial({color:col}));
-    brim.position.set(0,1.58,0.58); g.add(brim);                                    // 모자 챙
-    const eyeMat=new THREE.MeshLambertMaterial({color:0x26262b});
-    [0.23,-0.23].forEach(ex=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(0.075,8,8),eyeMat); e.position.set(ex,1.64,0.57); g.add(e); }); // 눈
-    g.position.set(x,0,z); scene.add(g); return g;
-  }
-  function mesh(geo,col,y,x){ const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:col})); m.position.set(x||0,y,0); return m; }
-  for(const k in FIELD_POS){ const isBat=k==='BAT'; const p=person(FIELD_POS[k].x,FIELD_POS[k].z, isBat?0xd6453f:0x2f6db5); if(isBat) p.rotation.y=Math.PI; }
+    <!-- Bottom Action Controls and Timed Hit Gauge Bar -->
+    <div class="glass-panel bottom-bar">
+        <div class="btn-container">
+            <button class="action-btn btn-emerald" id="action-pitch-ball">⚾ 투구 (PITCH)</button>
+            <button class="action-btn btn-amber" id="action-swing-bat" disabled>💥 타격 (SWING)</button>
+            <button class="action-btn btn-sky" id="action-defense-move" disabled>🏃‍♂️ 수비이동</button>
+            <button class="action-btn btn-slate" id="action-system-reset">초기화</button>
+        </div>
+        
+        <div class="btn-container" style="border-left: 1px solid #334155; padding-left: 12px;">
+            <button class="action-btn btn-purple" id="action-division-calc">내분 분석</button>
+            <button class="action-btn btn-emerald" id="action-open-scatter" style="background:#10b981;">데이터 산점도 AI</button>
+        </div>
 
-  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.34,16,16), new THREE.MeshLambertMaterial({color:0xffffff, emissive:0x222222}));
-  ball.visible=false; scene.add(ball);
+        <div class="timing-bar-container">
+            <div class="timing-track">
+                <div class="timing-perfect-zone"></div>
+                <div class="timing-indicator" id="swing-timing-meter"></div>
+            </div>
+        </div>
+    </div>
 
-  three.scene=scene; three.camera=camera; three.renderer=renderer; three.ball=ball; three.host=host; three.anim=null;
-  buildLabels();
-  (function loop(){ requestAnimationFrame(loop); if(three.anim) three.anim(); renderer.render(scene,camera); })();
-  placeLabels();
-  window.addEventListener('resize', onResize3D);
-}
-function buildLabels(){
-  const cont=document.getElementById('labels'); cont.innerHTML=''; three.labels={};
-  for(const k in FIELD_POS){ const chip=document.createElement('button');
-    chip.className='poschip'+(k==='BAT'?' bat':''); chip.innerHTML=`${POSITIONS[k].ko}<span>${ABBR[k]}</span>`;
-    chip.onclick=()=>openPos(k); cont.appendChild(chip); three.labels[k]=chip; }
-}
-function placeLabels(){
-  if(!three.camera) return; three.camera.updateMatrixWorld();
-  const {w,h}=vp();
-  for(const k in three.labels){ const fp=FIELD_POS[k];
-    const v=new THREE.Vector3(fp.x,2.7,fp.z).project(three.camera);
-    three.labels[k].style.left=((v.x*0.5+0.5)*w)+'px';
-    three.labels[k].style.top=((-v.y*0.5+0.5)*h)+'px'; }
-}
-function onResize3D(){
-  if(!three.renderer) return; const {w,h}=vp();
-  three.renderer.setSize(w,h); three.camera.aspect=w/h; three.camera.updateProjectionMatrix(); placeLabels();
-}
-function openPos(k){
-  const p=POSITIONS[k], card=document.getElementById('posCard');
-  card.classList.toggle('bat', k==='BAT');
-  card.innerHTML=`<button class="closex" onclick="closePos()">✕</button>
-    <div class="badge">${ABBR[k]}</div><h4>${p.ko} <span>(${p.en})</span></h4>
-    <div class="role">${p.role}</div><div class="skill"><span class="k">필요 역량</span>${p.skill}</div>`;
-  card.classList.add('show'); document.getElementById('posBack').classList.add('show');
-}
-function closePos(){ document.getElementById('posCard').classList.remove('show'); document.getElementById('posBack').classList.remove('show'); }
+    <!-- Screen Status Logger Footer -->
+    <div class="log-banner">
+        <span class="live-badge">LIVE</span>
+        <span id="system-log-text" style="color: #cbd5e1; font-weight: 500;">가상 선수 세팅을 완료한 후 [투구 (PITCH)] 버튼을 클릭하십시오. (투구 단축키: P / 타격: Space / 리셋: R)</span>
+    </div>
 
-function flyBall(from,to,arc,done){
-  const ball=three.ball; ball.visible=true; let t=0;
-  three.anim=()=>{ t+=0.035; const e=Math.min(1,t);
-    ball.position.x=from[0]+(to[0]-from[0])*e; ball.position.z=from[1]+(to[1]-from[1])*e;
-    ball.position.y=0.8+Math.sin(e*Math.PI)*arc;
-    if(e>=1){ three.anim=null; setTimeout(()=>{ball.visible=false;},400); if(done)done(); } };
-}
-function bubble(title,desc){ const el=document.getElementById('bubble');
-  el.innerHTML=title+(desc?`<small>${desc}</small>`:''); el.classList.add('show');
-  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1700); }
-function addTerm(name){ if(shownTerms.has(name)) return; shownTerms.add(name);
-  const box=document.getElementById('terms'); if(box.querySelector('.termempty')) box.innerHTML='';
-  const c=document.createElement('div'); c.className='termcard'; c.innerHTML=`<b>${name}</b><p>${TERMS[name]}</p>`; box.prepend(c); }
-function renderCount(){
-  const mk=(n,max,cls)=>{let h='';for(let i=0;i<max;i++)h+=`<div class="dot ${i<n?cls:''}"></div>`;return h;};
-  document.getElementById('dB').innerHTML=mk(count.b,4,'b');
-  document.getElementById('dS').innerHTML=mk(count.s,3,'s');
-  document.getElementById('dO').innerHTML=mk(count.o,3,'o');
-  document.getElementById('score').textContent=score;
-}
-function nextActionCheck(){ actions++; }
-function newOut(){ count.o++; addTerm('아웃 (Out)');
-  if(count.o>=3){ bubble('아웃! 공수 교대','아웃 3번이면 공격과 수비를 바꿔요'); setTimeout(()=>{count.o=count.b=count.s=0;renderCount();},1000); }
-  else bubble('아웃! (Out)','이 타자는 끝났어요'); }
-function fielderTargets(){ return [FIELD_POS.SS,FIELD_POS['2B'],FIELD_POS.CF,FIELD_POS.LF,FIELD_POS.RF,FIELD_POS['3B']]; }
+    <!-- Fullscreen Data Scatter Plot AI Modal Interface -->
+    <div class="fullscreen-modal" id="modal-scatter-interface">
+        <div class="modal-container">
+            <div class="modal-visual-area">
+                <div class="control-tip">마우스 휠: 확대/축소 | 드래그: 공간 평면 이동</div>
+                <button class="action-btn btn-slate" id="btn-reset-zoom" style="position:absolute; top:12px; right:12px; padding:4px 10px; font-size:11px; z-index:55;">줌 초기화</button>
+                <svg class="svg-canvas" id="svg-scatter-root" viewBox="0 0 600 500"></svg>
+            </div>
+            <div class="modal-detail-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="font-size:15px; font-weight:800; color:#10b981;">📊 AI 머니볼 산점도 분석</h3>
+                    <button class="action-btn btn-slate" id="btn-close-modal" style="padding:4px 10px; font-size:11px;">닫기(ESC)</button>
+                </div>
+                
+                <div class="tab-bar">
+                    <button class="tab-btn active" id="btn-scatter-tab-cls">분류 (kNN 거리)</button>
+                    <button class="tab-btn" id="btn-scatter-tab-reg">회귀 (최소제곱)</button>
+                </div>
 
-function pitch(){
-  if(three.anim) return;
-  // 투수 → 포수 (홈플레이트 뒤)
-  flyBall([FIELD_POS.P.x,FIELD_POS.P.z],[FIELD_POS.C.x,FIELD_POS.C.z],1.8,()=>{
-    const strike=Math.random()<0.5;
-    if(strike){ count.s++; addTerm('스트라이크 (Strike)');
-      if(count.s>=3){ count.s=0;count.b=0; addTerm('삼진 (Strikeout)'); addTerm('아웃 (Out)'); count.o++;
-        if(count.o>=3){ bubble('삼진 아웃! 공수 교대'); setTimeout(()=>{count.o=count.b=count.s=0;renderCount();},1000); }
-        else bubble('삼진 아웃! (Strikeout)','스트라이크 3개로 아웃'); }
-      else bubble('스트라이크! (Strike)', TERMS['스트라이크 (Strike)']);
-    } else { count.b++; addTerm('볼 (Ball)');
-      if(count.b>=4){ count.b=0;count.s=0; addTerm('볼넷 (Base on Balls)'); bubble('볼넷, 1루로! (Base on Balls)', TERMS['볼넷 (Base on Balls)']); }
-      else bubble('볼! (Ball)', TERMS['볼 (Ball)']); }
-    renderCount(); nextActionCheck();
-  });
-}
-function swing(){
-  if(three.anim) return;
-  const r=Math.random(), bat=[FIELD_POS.BAT.x,FIELD_POS.BAT.z];
-  if(r<0.50){ const f=fielderTargets()[Math.floor(Math.random()*6)];
-    flyBall(bat,[f.x,f.z],1.6,()=>{ count.b=0;count.s=0; newOut(); renderCount(); nextActionCheck(); }); }
-  else if(r<0.88){ flyBall(bat,[15,-12],2.0,()=>{ count.b=0;count.s=0; addTerm('안타 (Hit)'); bubble('안타! (Hit)', TERMS['안타 (Hit)']); renderCount(); nextActionCheck(); }); }
-  else { flyBall(bat,[0,-48],6.0,()=>{ count.b=0;count.s=0; score++; addTerm('홈런 (Home Run)'); bubble('홈런! ⚾💨 (Home Run)', TERMS['홈런 (Home Run)']); renderCount(); nextActionCheck(); }); }
-}
-function resetGame(){ count={b:0,s:0,o:0}; score=0; renderCount(); }
+                <!-- Scatter Sub-mode A: Classification kNN Euclidean Distance -->
+                <div id="sub-panel-cls" class="flex-col-gap">
+                    <p style="font-size:11px; color:#94a3b8; line-height:1.5;">두 데이터 포인트를 연속 클릭하여 이들의 유클리드 차원 거리를 구하거나, 탐색 슬라이더 반경 원 안에 포섭된 최근접 이웃(kNN) 다수결 유형 분류 과정을 확인합니다.</p>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;"><span>kNN 탐색 반경</span><span class="mono" id="lbl-knn-radius-val" style="color:#10b981;">0.080</span></div>
+                        <input type="range" id="knn-radius-slider" min="0.02" max="0.25" step="0.005" value="0.08">
+                    </div>
+                    
+                    <div style="border-top:1px solid #1e293b; padding-top:10px;">
+                        <span style="font-size:11px; color:#cbd5e1; font-weight:bold; display:block; margin-bottom:6px;">➕ 가상 인공데이터 주입</span>
+                        <div class="input-inline" style="margin-bottom:6px;">
+                            <input type="number" class="input-field" id="input-custom-slg" placeholder="장타율(0.2~0.8)" step="0.01">
+                            <input type="number" class="input-field" id="input-custom-bb" placeholder="볼넷(0~120)" step="1">
+                        </div>
+                        <button class="action-btn btn-emerald" id="btn-insert-custom-dot" style="width:100%; padding:6px; font-size:11px;">데이터 삽입 & kNN 연산</button>
+                    </div>
 
-/* =====================================================================
-   STEP 2 — 좌표평면 (560x560 viewBox)
-   ===================================================================== */
-const F={home:{x:0,y:0,name:'홈 (원점)'}, b1:{x:19.4,y:19.4,name:'1루'}, b2:{x:0,y:38.8,name:'2루'}, b3:{x:-19.4,y:19.4,name:'3루'}};
-const M2={ox:280,oy:500,s:9.5, sel:[], foul:false};
-function fx(x){return M2.ox + x*M2.s;}
-function fy(y){return M2.oy - y*M2.s;}
-function drawField2(){
-  const svg=document.getElementById('svg2'); let h='';
-  for(let gx=-26;gx<=26;gx+=10) h+=`<line x1="${fx(gx)}" y1="${fy(-3)}" x2="${fx(gx)}" y2="${fy(46)}" stroke="#16293a" stroke-width="1"/>`;
-  for(let gy=0;gy<=46;gy+=10) h+=`<line x1="${fx(-28)}" y1="${fy(gy)}" x2="${fx(28)}" y2="${fy(gy)}" stroke="#16293a" stroke-width="1"/>`;
-  h+=`<line x1="${fx(-28)}" y1="${fy(0)}" x2="${fx(28)}" y2="${fy(0)}" stroke="#3a5266" stroke-width="1.5"/>`;
-  h+=`<line x1="${fx(0)}" y1="${fy(-3)}" x2="${fx(0)}" y2="${fy(46)}" stroke="#3a5266" stroke-width="1.5"/>`;
-  h+=`<text x="${fx(27)}" y="${fy(0)-8}" fill="#5f7689" font-size="13">x</text>`;
-  h+=`<text x="${fx(0)+9}" y="${fy(45)}" fill="#5f7689" font-size="13">y</text>`;
-  h+=`<polygon points="${fx(F.home.x)},${fy(F.home.y)} ${fx(F.b1.x)},${fy(F.b1.y)} ${fx(F.b2.x)},${fy(F.b2.y)} ${fx(F.b3.x)},${fy(F.b3.y)}" fill="#2a2114" stroke="#7a5e35" stroke-width="2"/>`;
-  if(M2.foul){
-    h+=`<line x1="${fx(0)}" y1="${fy(0)}" x2="${fx(30)}" y2="${fy(30)}" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="7 5"/>`;
-    h+=`<line x1="${fx(0)}" y1="${fy(0)}" x2="${fx(-30)}" y2="${fy(30)}" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="7 5"/>`;
-    h+=`<text x="${fx(24)}" y="${fy(27)}" fill="#fbbf24" font-size="14" font-weight="700">y = x</text>`;
-    h+=`<text x="${fx(-31)}" y="${fy(27)}" fill="#fbbf24" font-size="14" font-weight="700">y = −x</text>`;
-  }
-  if(M2.sel.length===2){ const a=F[M2.sel[0]],b=F[M2.sel[1]];
-    h+=`<line x1="${fx(a.x)}" y1="${fy(a.y)}" x2="${fx(b.x)}" y2="${fy(b.y)}" stroke="#2dd4bf" stroke-width="3.5"/>`; }
-  for(const k in F){ const p=F[k], on=M2.sel.includes(k);
-    h+=`<g style="cursor:pointer" onclick="pickBase('${k}')">
-      <circle cx="${fx(p.x)}" cy="${fy(p.y)}" r="${on?13:10}" fill="${on?'#2dd4bf':'#0c1822'}" stroke="${on?'#2dd4bf':'#cdd9d0'}" stroke-width="2"/>
-      <text x="${fx(p.x)}" y="${fy(p.y)-18}" text-anchor="middle" font-size="13" font-weight="700" fill="#e9eff5">${p.name}</text>
-      <text x="${fx(p.x)}" y="${fy(p.y)+27}" text-anchor="middle" font-size="12" fill="#90a6b8">(${p.x}, ${p.y})</text>
-    </g>`; }
-  svg.innerHTML=h;
-}
-function pickBase(k){ const i=M2.sel.indexOf(k); if(i>=0) M2.sel.splice(i,1); else { M2.sel.push(k); if(M2.sel.length>2) M2.sel.shift(); } drawField2(); showDist2(); }
-function showDist2(){
-  const card=document.getElementById('distCard');
-  if(M2.sel.length<2){ card.innerHTML='<span class="muted">베이스 두 개를 클릭하면 여기에 계산 과정이 나타나요.</span>'; return; }
-  const a=F[M2.sel[0]], b=F[M2.sel[1]]; const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy);
-  card.innerHTML=`<b>${a.name}</b> → <b>${b.name}</b><br>
-    <span class="step">d = √((${b.x}−${a.x})² + (${b.y}−${a.y})²)</span><br>
-    <span class="step">= √(${(dx*dx).toFixed(2)} + ${(dy*dy).toFixed(2)})</span><br>
-    <span class="step">= <span class="res">${d.toFixed(2)} m</span></span>`;
-}
-function toggleFoul(){ M2.foul=!M2.foul; document.getElementById('foulBtn').classList.toggle('on',M2.foul); drawField2(); }
+                    <div class="box-dark" id="cls-math-log-panel" style="background:rgba(0,0,0,0.4);">
+                        수식 및 분류 AI 탐색 정보가 여기에 표시됩니다.
+                    </div>
+                </div>
 
-/* =====================================================================
-   STEP 3 — 산점도  ① 분류(유클리드 거리)  ② 회귀(직선의 방정식·오차)
-   ===================================================================== */
-const players=[
-  {name:'김대포', hr:36, sb:3,  type:'거포형',  avg:0.291, sal:13},
-  {name:'이장타', hr:31, sb:7,  type:'거포형',  avg:0.276, sal:9},
-  {name:'박이도', hr:27, sb:28, type:'호타준족', avg:0.314, sal:16},
-  {name:'최질주', hr:23, sb:25, type:'호타준족', avg:0.266, sal:7},
-  {name:'정콘택', hr:8,  sb:18, type:'교타자형', avg:0.305, sal:8},
-  {name:'한안타', hr:6,  sb:11, type:'교타자형', avg:0.252, sal:6},
-];
-const M3={mode:'cls', ml:66,mt:34,pw:448,ph:430, sel:[], extra:null, showRes:true};
-const AVGMIN=0.24, AVGMAX=0.33, SALMAX=18;
-function sx(hr){return M3.ml + (hr/40)*M3.pw;}
-function sy(sb){return M3.mt + M3.ph - (sb/40)*M3.ph;}
-function rsx(a){return M3.ml + ((a-AVGMIN)/(AVGMAX-AVGMIN))*M3.pw;}
-function rsy(s){return M3.mt + M3.ph - (s/SALMAX)*M3.ph;}
-function regression(){
-  const n=players.length; let mx=0,my=0; players.forEach(p=>{mx+=p.avg;my+=p.sal;}); mx/=n;my/=n;
-  let num=0,den=0; players.forEach(p=>{num+=(p.avg-mx)*(p.sal-my); den+=(p.avg-mx)**2;});
-  const a=num/den, b=my-a*mx; return {a,b};
-}
-function axes3(xlabel,ylabel){
-  let s='';
-  s+=`<line x1="${M3.ml}" y1="${M3.mt+M3.ph}" x2="${M3.ml+M3.pw}" y2="${M3.mt+M3.ph}" stroke="#3a5266" stroke-width="1.5"/>`;
-  s+=`<line x1="${M3.ml}" y1="${M3.mt}" x2="${M3.ml}" y2="${M3.mt+M3.ph}" stroke="#3a5266" stroke-width="1.5"/>`;
-  s+=`<text x="${M3.ml+M3.pw/2}" y="${M3.mt+M3.ph+44}" text-anchor="middle" font-size="14" font-weight="700" fill="#e9eff5">${xlabel}</text>`;
-  s+=`<text x="22" y="${M3.mt+M3.ph/2}" text-anchor="middle" font-size="14" font-weight="700" fill="#e9eff5" transform="rotate(-90 22 ${M3.mt+M3.ph/2})">${ylabel}</text>`;
-  return s;
-}
-/* ── ① 분류 ── */
-function drawCls(){
-  const svg=document.getElementById('svg3'); let h='';
-  const cl=[{name:'거포형',cx:33,cy:5,col:'#2c2410'},{name:'호타준족',cx:25,cy:26,col:'#0e2e2b'},{name:'교타자형',cx:7,cy:14,col:'#142a40'}];
-  cl.forEach(c=>{ h+=`<ellipse cx="${sx(c.cx)}" cy="${sy(c.cy)}" rx="72" ry="60" fill="${c.col}"/>`;
-    h+=`<text x="${sx(c.cx)}" y="${sy(c.cy)-58}" text-anchor="middle" font-size="13" font-weight="700" fill="#7a8ea0">${c.name}</text>`; });
-  h+=axes3('홈런 (개)','도루 (개)');
-  for(let v=0;v<=40;v+=10){ h+=`<text x="${sx(v)}" y="${M3.mt+M3.ph+22}" text-anchor="middle" font-size="12" fill="#7a8ea0">${v}</text>`;
-    h+=`<text x="${M3.ml-12}" y="${sy(v)+4}" text-anchor="end" font-size="12" fill="#7a8ea0">${v}</text>`; }
-  if(M3.sel.length===2){ const a=players[M3.sel[0]],b=players[M3.sel[1]];
-    h+=`<line x1="${sx(a.hr)}" y1="${sy(a.sb)}" x2="${sx(b.hr)}" y2="${sy(b.sb)}" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="6 4"/>`; }
-  players.forEach((p,i)=>{ const on=M3.sel.includes(i);
-    h+=`<g style="cursor:pointer" onclick="pickPlayer(${i})"><circle cx="${sx(p.hr)}" cy="${sy(p.sb)}" r="${on?15:11}" fill="${on?'#2dd4bf':'#5aa2f0'}" stroke="#0a1620" stroke-width="3"/>
-      <text x="${sx(p.hr)}" y="${sy(p.sb)-18}" text-anchor="middle" font-size="13" font-weight="700" fill="#e9eff5">${p.name}</text></g>`; });
-  if(M3.extra){ const e=M3.extra; if(e.near!=null){ const n=players[e.near];
-      h+=`<line x1="${sx(e.hr)}" y1="${sy(e.sb)}" x2="${sx(n.hr)}" y2="${sy(n.sb)}" stroke="#fb923c" stroke-width="2.5"/>`; }
-    h+=`<circle cx="${sx(e.hr)}" cy="${sy(e.sb)}" r="12" fill="#fb923c" stroke="#0a1620" stroke-width="3"/>
-      <text x="${sx(e.hr)}" y="${sy(e.sb)-18}" text-anchor="middle" font-size="13" font-weight="800" fill="#fb923c">새 선수</text>`; }
-  svg.innerHTML=h;
-}
-/* ── ② 회귀 ── */
-function drawReg(){
-  const svg=document.getElementById('svg3'); const {a,b}=regression(); let h='';
-  h+=axes3('타율 (Batting Average)','연봉 (억원)');
-  for(const v of [0.24,0.27,0.30,0.33]) h+=`<text x="${rsx(v)}" y="${M3.mt+M3.ph+22}" text-anchor="middle" font-size="12" fill="#7a8ea0">.${Math.round(v*1000)}</text>`;
-  for(const v of [0,6,12,18]) h+=`<text x="${M3.ml-12}" y="${rsy(v)+4}" text-anchor="end" font-size="12" fill="#7a8ea0">${v}</text>`;
-  h+=`<line x1="${rsx(AVGMIN)}" y1="${rsy(a*AVGMIN+b)}" x2="${rsx(AVGMAX)}" y2="${rsy(a*AVGMAX+b)}" stroke="#fbbf24" stroke-width="3"/>`;
-  h+=`<text x="${rsx(AVGMAX)-6}" y="${rsy(a*AVGMAX+b)-8}" text-anchor="end" font-size="12" font-weight="700" fill="#fbbf24">회귀선</text>`;
-  if(M3.showRes){ players.forEach(p=>{ const pred=a*p.avg+b; const col=p.sal>=pred?'#fb923c':'#2dd4bf';
-    h+=`<line x1="${rsx(p.avg)}" y1="${rsy(p.sal)}" x2="${rsx(p.avg)}" y2="${rsy(pred)}" stroke="${col}" stroke-width="2" stroke-dasharray="4 3"/>`; }); }
-  players.forEach((p,i)=>{ const on=M3.sel.includes(i);
-    h+=`<g style="cursor:pointer" onclick="pickPlayer(${i})"><circle cx="${rsx(p.avg)}" cy="${rsy(p.sal)}" r="${on?15:11}" fill="${on?'#2dd4bf':'#5aa2f0'}" stroke="#0a1620" stroke-width="3"/>
-      <text x="${rsx(p.avg)}" y="${rsy(p.sal)-18}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#e9eff5">${p.name}</text></g>`; });
-  svg.innerHTML=h;
-}
-function render3(){ if(M3.mode==='cls') drawCls(); else drawReg(); }
-function pickPlayer(i){
-  if(M3.mode==='cls'){ const k=M3.sel.indexOf(i); if(k>=0) M3.sel.splice(k,1); else { M3.sel.push(i); if(M3.sel.length>2) M3.sel.shift(); } render3(); showDist3(); }
-  else { M3.sel=[i]; render3(); showRes3(i); }
-}
-function showDist3(){
-  const card=document.getElementById('distCard3'); if(!card) return;
-  if(M3.sel.length<2){ card.innerHTML='<span class="muted">선수 두 명(점)을 클릭하면 거리를 계산해요.</span>'; return; }
-  const a=players[M3.sel[0]], b=players[M3.sel[1]]; const dx=b.hr-a.hr, dy=b.sb-a.sb, d=Math.sqrt(dx*dx+dy*dy);
-  const verdict=d<12?'아주 비슷한 유형!':(d<22?'조금 비슷해요.':'서로 다른 유형이에요.');
-  card.innerHTML=`<b>${a.name}</b> ↔ <b>${b.name}</b> · 유클리드 거리<br>
-    <span class="step">d = √((${b.hr}−${a.hr})² + (${b.sb}−${a.sb})²) = <span class="res">${d.toFixed(1)}</span></span><br>→ ${verdict}`;
-}
-function showRes3(i){
-  const card=document.getElementById('resCard'); if(!card) return;
-  const {a,b}=regression(); const p=players[i]; const pred=a*p.avg+b; const res=p.sal-pred;
-  const ud = res>=0 ? '위 — 예측보다 높음' : '아래 — 저평가 선수!';
-  const col = res>=0 ? 'var(--warm)':'var(--info)';
-  card.innerHTML=`<b>${p.name}</b> · 타율 .${Math.round(p.avg*1000)}<br>
-    <span class="step">예측 연봉 = ${pred.toFixed(1)}억 · 실제 = ${p.sal}억</span><br>
-    <span class="step">오차 = 실제 − 예측 = <span class="res" style="color:${col}">${res>=0?'+':''}${res.toFixed(1)}억</span></span><br>→ 회귀선 ${ud}`;
-}
-function addPlayer(){
-  const hrEl=document.getElementById('newHR'), sbEl=document.getElementById('newSB'); if(!hrEl) return;
-  const hr=Math.max(0,Math.min(40,+hrEl.value)); const sb=Math.max(0,Math.min(40,+sbEl.value));
-  let best=-1,bd=1e9; players.forEach((p,i)=>{ const d=Math.hypot(p.hr-hr,p.sb-sb); if(d<bd){bd=d;best=i;} });
-  M3.extra={hr,sb,near:best}; drawCls();
-  const sim=document.getElementById('simCard'); if(sim){ sim.classList.add('show');
-    sim.innerHTML=`새 선수(홈런 ${hr}, 도루 ${sb})와 가장 <b>가까운</b> 선수는 <b>${players[best].name}</b>입니다. 거리 = <b>${bd.toFixed(1)}</b> → <b>${players[best].type}</b>으로 분류돼요.`; }
-}
-function toggleRes(){ M3.showRes=!M3.showRes; const btn=document.getElementById('resBtn'); if(btn) btn.classList.toggle('on',M3.showRes); render3(); }
-function setMode3(m){
-  M3.mode=m; M3.sel=[]; M3.extra=null;
-  document.getElementById('modeCls').classList.toggle('active', m==='cls');
-  document.getElementById('modeReg').classList.toggle('active', m==='reg');
-  renderGuide3(); render3();
-}
-function renderGuide3(){
-  const g=document.getElementById('guide3');
-  if(M3.mode==='cls'){
-    g.innerHTML=`<span class="kicker info">STEP 3 · 정보(AI) — 분류 (Classification)</span>
-      <h3>비슷한 선수 묶기</h3>
-      <p class="lead">점 하나는 <b>선수 한 명</b>이에요. <b>가까울수록 비슷</b>합니다. 점끼리 선으로 잇지 않아요!</p>
-      <ol class="howto"><li>선수 <b>두 명</b>(점)을 클릭하면 비슷한 정도를 거리로 알려줘요.</li><li>아래에서 <b>새 선수</b>를 추가해 가까운 무리를 찾아보세요.</li></ol>
-      <div class="calc info" id="distCard3"><span class="muted">선수 두 명(점)을 클릭하면 거리를 계산해요.</span></div>
-      <div class="addrow"><label>새 선수</label><label>홈런 <input type="number" id="newHR" min="0" max="40" value="20"></label><label>도루 <input type="number" id="newSB" min="0" max="40" value="20"></label><button class="ghost add" onclick="addPlayer()">산점도에 찍기</button></div>
-      <div class="simcard" id="simCard"></div>
-      <p class="tip"><b>수학:</b> 점 사이 거리 = <b>유클리드 거리</b> = 두 점 사이의 거리 공식 √((x₂−x₁)²+(y₂−y₁)²). → 펭귄 <b>분류</b>(Orange3)로 이어집니다.</p>`;
-  } else {
-    const {a,b}=regression();
-    g.innerHTML=`<span class="kicker math">STEP 3 · 정보(AI) — 회귀 (Regression)</span>
-      <h3>예측선과 오차</h3>
-      <p class="lead">타율이 높으면 연봉도 높은 <b>경향</b>이 있어요. 그 경향을 직선으로 그린 것이 <b>회귀선</b>입니다.</p>
-      <div class="fbox"><div class="flabel">회귀선 = 직선의 방정식</div><div class="formula">y = ${a.toFixed(0)}·x ${b>=0?'+':'−'} ${Math.abs(b).toFixed(1)}</div></div>
-      <ol class="howto m"><li>점에서 회귀선까지 <b>세로 거리</b>가 <b>오차(잔차)</b>예요.</li><li>선수(점)를 클릭하면 그 선수의 오차를 보여줘요.</li></ol>
-      <div class="calc" id="resCard"><span class="muted">선수(점)를 클릭하면 오차를 계산해요.</span></div>
-      <button class="ghost on" id="resBtn" onclick="toggleRes()">오차 선 보기</button>
-      <p class="tip"><b>수학:</b> 회귀선 = <b>직선의 방정식</b> y=ax+b. 점과 선의 <b>세로 거리</b> = <b>오차(잔차)</b>. 오차가 작을수록 좋은 예측 → 기온 <b>회귀</b>(Orange3)로 이어집니다.</p>
-      <p class="tip">💡 회귀선 <b>아래</b>의 선수 = 실력보다 연봉이 낮은 <b>저평가</b> 선수. 머니볼이 노리는 선수예요!</p>`;
-  }
-}
+                <!-- Scatter Sub-mode B: Least-Squares Linear Regression -->
+                <div id="sub-panel-reg" class="flex-col-gap" style="display:none;">
+                    <p style="font-size:11px; color:#94a3b8; line-height:1.5;">최소제곱법을 통한 회귀 예측선 $y = ax + b$와 데이터 사이의 잔차(오차)를 도출합니다. 선의 아래(음수 잔차)에 존재할수록 가성비가 우수한 머니볼 저평가 선수입니다.</p>
+                    <div class="box-dark" id="reg-math-log-panel" style="background:rgba(0,0,0,0.4);">
+                        수치적 선형회귀 분석 및 잔차 분석 패널
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-window.addEventListener('load',()=>{ initThree(); renderCount(); drawField2(); setMode3('cls'); });
-</script>
+    <!-- ================================================================= -->
+    <!-- JAVASCRIPT SYSTEM ENGINE INTEGRATION                              -->
+    <!-- ================================================================= -->
+    <script>
+        // Core WebGL state definitions
+        let scene, camera, renderer, orbitControls, clock;
+        let gameState = 'IDLE'; // IDLE, PITCHING, PITCHED_WAITING, HITTING, FIELDING, RUNNING, FREEZE, PLAY_END
+
+        // Geometry parameters & scale coefficients (Section 2-A Specs)
+        const BS = 12.7; // 3D geometry scale factor
+        const REAL_BASE_DIST = 27.4; // Real distance between bases in meters
+
+        // 3D overlay rendering state definitions
+        const overlays3D = { coord: false, line: false, circle: false, translate: false };
+        let activeLandingExplorationMode = 'NONE'; // NONE, LINE, CIRCLE
+        let targetLandingExploreRadius = 10.0;
+
+        // Sabermetrics metrics defaults (Section 7-1 Specs)
+        let battingAvg = 0.320;
+        let onBaseAvg = 0.390;
+        let sluggingAvg = 0.480;
+        let computedOPSVal = 0.870;
+        
+        let currentPlayResultType = 'OUT'; // OUT, SINGLE, DOUBLE, HR, FOUL, STRIKE, BALL
+        let pitchIsTargetStrikeZone = true;
+        let selectedFielderKeyTracker = null;
+
+        // Scoreboard score & BSO indicators state
+        let homeScore = 0;
+        let awayScore = 0;
+        let countB = 0;
+        let countS = 0;
+        let countO = 0;
+        let currentInningTextString = "1회말";
+        const basesRunnerPresenceState = { 1: false, 2: false, 3: false };
+
+        // 3D Core meshes references
+        let ballMesh, ballTailLineMesh;
+        const pitchMound3DPos = new THREE.Vector3(0, 0.4, BS * 1.346); // (0, 18.44) proportional mapping
+        const homePlate3DPos = new THREE.Vector3(0, 0.3, 0);
+        let frozenBallPositionReference = null;
+
+        let hitTimeDurationElapsed = 0;
+        const flightTotalTimeInterval = 2.0;
+        let ballTargetLanding3DPos = new THREE.Vector3(0, 0, 0);
+
+        // 3D Helper meshes
+        let gridHelper3D, axisLineX, axisLineZ, distanceMeasurementLine;
+        let leftFoulLineLineMesh, rightFoulLineLineMesh, outfieldShiftCoverageCircleMesh, explorationLineCircleVectorMesh;
+        let divisionFielderConnectLineMesh, divisionFielderVerticalProjectMesh;
+
+        // Characters
+        const playerEntities = { pitcher: null, batter: null, catcher: null, fielders: {}, dynamicRunners: [] };
+
+        // Proportional positions map
+        const base3DCoordinatesMap = {
+            0: new THREE.Vector3(0, 0.3, 0),          // Home plate
+            1: new THREE.Vector3(-BS, 0.3, BS),       // 1st Base
+            2: new THREE.Vector3(0, 0.3, BS * 2),     // 2nd Base
+            3: new THREE.Vector3(BS, 0.3, BS),        // 3rd Base
+            4: new THREE.Vector3(0, 0.3, 0)           // Home in
+        };
+
+        // Standard positions dictionary (Section 7-4 Specs)
+        const fielderStructuralData = {
+            '1b': { x: -7.5, z: 9.5, curX: -7.5, curZ: 9.5, name: '1루수', eng: '1B', winRate: '98.2%' },
+            '2b': { x: -4.5, z: 18.0, curX: -4.5, curZ: 18.0, name: '2루수', eng: '2B', winRate: '97.5%' },
+            '3b': { x: 7.5, z: 9.5, curX: 7.5, curZ: 9.5, name: '3루수', eng: '3B', winRate: '96.8%' },
+            'ss': { x: 4.5, z: 18.0, curX: 4.5, curZ: 18.0, name: '유격수', eng: 'SS', winRate: '97.1%' },
+            'lf': { x: -16.0, z: 24.0, curX: -16.0, curZ: 24.0, name: '좌익수', eng: 'LF', winRate: '98.0%' },
+            'cf': { x: 0.0, z: 32.0, curX: 0.0, curZ: 32.0, name: '중견수', eng: 'CF', winRate: '98.5%' },
+            'rf': { x: 16.0, z: 24.0, curX: 16.0, curZ: 24.0, name: '우익수', eng: 'RF', winRate: '97.8%' }
+        };
+
+        // Swing timing bar variables
+        let timingBarProgressTracker = 0;
+
+        // Modal elements Zoom & Pan engine states
+        const svgZoomEngineState = {
+            cls: { scale: 1.0, tx: 0, ty: 0, isDragging: false, startX: 0, startY: 0 },
+            reg: { scale: 1.0, tx: 0, ty: 0, isDragging: false, startX: 0, startY: 0 }
+        };
+        let currentScatterActiveMode = 'CLS'; // CLS, REG
+        let selectedClsPointsArray = [];
+        let insertedCustomPointsCounter = 0;
+
+        // Section 7-2: Classification Datasets
+        const kboClassificationDataset = [
+            { name: "이정후", slg: 0.490, bb: 72, type: "균형형", color: "#10b981" },
+            { name: "박병호", slg: 0.548, bb: 58, type: "장타형", color: "#f43f5e" },
+            { name: "최형우", slg: 0.512, bb: 65, type: "장타형", color: "#f43f5e" },
+            { name: "나성범", slg: 0.520, bb: 52, type: "장타형", color: "#f43f5e" },
+            { name: "강민준", slg: 0.440, bb: 28, type: "고타율형", color: "#eab308" },
+            { name: "이재현", slg: 0.425, bb: 24, type: "고타율형", color: "#eab308" },
+            { name: "박성호", slg: 0.415, bb: 22, type: "고타율형", color: "#eab308" },
+            { name: "오승환", slg: 0.370, bb: 82, type: "출루형", color: "#06b6d4", undervalued: true },
+            { name: "류현진", slg: 0.355, bb: 88, type: "출루형", color: "#06b6d4", undervalued: true },
+            { name: "정상호", slg: 0.365, bb: 78, type: "출루형", color: "#06b6d4", undervalued: true },
+            { name: "한동희", slg: 0.360, bb: 85, type: "출루형", color: "#06b6d4", undervalued: true },
+            { name: "이원석", slg: 0.320, bb: 18, type: "수비형", color: "#94a3b8" },
+            { name: "박계범", slg: 0.305, bb: 15, type: "수비형", color: "#94a3b8" },
+            { name: "최준혁", slg: 0.315, bb: 20, type: "수비형", color: "#94a3b8" },
+            { name: "강백호", slg: 0.325, bb: 22, type: "수비형", color: "#94a3b8" },
+            { name: "로하스", slg: 0.535, bb: 55, type: "장타형", color: "#f43f5e" },
+            { name: "페르난데스", slg: 0.525, bb: 48, type: "장타형", color: "#f43f5e" },
+            { name: "김재환", slg: 0.505, bb: 62, type: "균형형", color: "#10b981" },
+            { name: "양의지", slg: 0.480, bb: 68, type: "균형형", color: "#10b981" },
+            { name: "홍창기", slg: 0.470, bb: 70, type: "균형형", color: "#10b981" }
+        ];
+
+        // Section 7-3: Regression Datasets
+        const kboRegressionDataset = [
+            { name: "박병호", rbi: 92, hr: 33 }, { name: "나성범", rbi: 88, hr: 28 },
+            { name: "최형우", rbi: 85, hr: 25 }, { name: "로하스", rbi: 90, hr: 30 },
+            { name: "김재환", rbi: 82, hr: 24 }, { name: "이정후", rbi: 78, hr: 16 },
+            { name: "양의지", rbi: 75, hr: 15 }, { name: "홍창기", rbi: 72, hr: 12 },
+            { name: "강민준", rbi: 65, hr: 12 }, { name: "이재현", rbi: 58, hr: 10 },
+            { name: "오승환", rbi: 45, hr: 7 },  { name: "류현진", rbi: 38, hr: 5 },
+            { name: "이원석", rbi: 28, hr: 4 },  { name: "박계범", rbi: 22, hr: 3 },
+            { name: "한동희", rbi: 42, hr: 4 },  { name: "정상호", rbi: 48, hr: 6 },
+            { name: "강백호", rbi: 55, hr: 5 },  { name: "페르난데스", rbi: 86, hr: 29 }
+        ];
+
+        // =================================================================
+        // MATHEMATICAL COORDINATE SYSTEM TRANSLATION METHODS (Section 2-A)
+        // =================================================================
+        function translateRealTo3DSpace(rx, rz) {
+            let x3d = - (rx / REAL_BASE_DIST) * BS;
+            let z3d = (rz / REAL_BASE_DIST) * BS;
+            if (rz > 0) {
+                z3d += (BS - Math.abs(x3d)) * (rz / REAL_BASE_DIST);
+            }
+            return { x: x3d, z: z3d };
+        }
+
+        function translate3DToRealSpace(x3d, z3d) {
+            let rx = - (x3d / BS) * REAL_BASE_DIST;
+            let denom = (2 * BS - Math.abs(x3d));
+            let rz = denom !== 0 ? (z3d * REAL_BASE_DIST) / denom : 0;
+            return { x: rx, z: rz };
+        }
+
+        // =================================================================
+        // THREE.JS GRAPHICS BUILDING FUNCTIONS
+        // =================================================================
+        function buildGrassTextureMap() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1b3f21'; ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = '#204727'; ctx.fillRect(0, 0, 64, 128);
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            for (let i = 0; i < 400; i++) {
+                ctx.fillRect(Math.random() * 128, Math.random() * 128, 1.5, 1.5);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(16, 16);
+            return texture;
+        }
+
+        function buildChubbyEagleMascotModel(bodyColor = 0xffffff, capHelmetColor = 0x1e293b) {
+            const group = new THREE.Group();
+
+            // Chubby sphere body
+            const bodyGeo = new THREE.SphereGeometry(0.55, 32, 24);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.85 });
+            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            bodyMesh.scale.set(1.08, 0.96, 1.08);
+            bodyMesh.position.y = 0.5;
+            bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
+            group.add(bodyMesh);
+
+            // Highlight eye pins
+            const eyeGeo = new THREE.SphereGeometry(0.07, 16, 16);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.1 });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat); leftEye.position.set(0.18, 0.62, 0.4);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat); rightEye.position.set(-0.18, 0.62, 0.4);
+            group.add(leftEye); group.add(rightEye);
+
+            const highlightGeo = new THREE.SphereGeometry(0.02, 8, 8);
+            const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const leftHighlight = new THREE.Mesh(highlightGeo, highlightMat); leftHighlight.position.set(0.2, 0.65, 0.45);
+            const rightHighlight = new THREE.Mesh(highlightGeo, highlightMat); rightHighlight.position.set(-0.16, 0.65, 0.45);
+            group.add(leftHighlight); group.add(rightHighlight);
+
+            // Cute cone beak
+            const beakGeo = new THREE.ConeGeometry(0.11, 0.18, 4);
+            const beakMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 });
+            const beakMesh = new THREE.Mesh(beakGeo, beakMat);
+            beakMesh.rotation.x = Math.PI / 2;
+            beakMesh.scale.set(1.3, 0.7, 1.0);
+            beakMesh.position.set(0, 0.52, 0.45);
+            group.add(beakMesh);
+
+            // Baseball cap
+            const capDomeGeo = new THREE.SphereGeometry(0.4, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const capMat = new THREE.MeshStandardMaterial({ color: capHelmetColor, roughness: 0.6 });
+            const capDome = new THREE.Mesh(capDomeGeo, capMat);
+            capDome.position.y = 0.8;
+            capDome.scale.set(1.03, 1.0, 1.03);
+            group.add(capDome);
+
+            const capBrimGeo = new THREE.BoxGeometry(0.45, 0.03, 0.3);
+            const capBrim = new THREE.Mesh(capBrimGeo, capMat);
+            capBrim.position.set(0, 0.78, 0.28);
+            capBrim.rotation.x = 0.06;
+            group.add(capBrim);
+
+            // Chubby flat feet
+            const footGeo = new THREE.BoxGeometry(0.16, 0.04, 0.24);
+            const footMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+            const leftFoot = new THREE.Mesh(footGeo, footMat); leftFoot.position.set(0.18, 0.02, 0.05);
+            const rightFoot = new THREE.Mesh(footGeo, footMat); rightFoot.position.set(-0.18, 0.02, 0.05);
+            group.add(leftFoot); group.add(rightFoot);
+
+            group.rotation.order = 'YXZ';
+            return group;
+        }
+
+        // =================================================================
+        // SYSTEM CORE COMPONENT ASSEMBLY
+        // =================================================================
+        function initWebGLCore() {
+            const container = document.getElementById('canvas-container');
+            const w = (container && container.clientWidth > 0) ? container.clientWidth : window.innerWidth;
+            const h = (container && container.clientHeight > 0) ? container.clientHeight : window.innerHeight;
+            
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1d);
+            scene.fog = new THREE.FogExp2(0x0a0f1d, 0.015);
+
+            camera = new THREE.PerspectiveCamera(48, w / h, 0.1, 400);
+            camera.position.set(0, 16.0, -15.0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(w, h);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            
+            if (container) container.appendChild(renderer.domElement);
+
+            // OrbitControls Safe Initializer (Rule 1-D)
+            try {
+                if (typeof THREE.OrbitControls !== 'undefined') {
+                    orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+                    orbitControls.enableDamping = true;
+                    orbitControls.dampingFactor = 0.05;
+                    orbitControls.maxPolarAngle = Math.PI / 2.15;
+                    orbitControls.minDistance = 6;
+                    orbitControls.maxDistance = 80;
+                    orbitControls.target.set(0, 1.0, BS);
+                }
+            } catch (e) {
+                console.warn('OrbitControls instantiation warning:', e);
+            }
+
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0x283952, 0.9);
+            scene.add(ambientLight);
+
+            const mainDirectionalLight = new THREE.DirectionalLight(0xfffdf5, 1.35);
+            mainDirectionalLight.position.set(-30, 25, 12);
+            mainDirectionalLight.castShadow = true;
+            mainDirectionalLight.shadow.mapSize.width = 2048; mainDirectionalLight.shadow.mapSize.height = 2048;
+            mainDirectionalLight.shadow.camera.near = 0.5; mainDirectionalLight.shadow.camera.far = 100;
+            mainDirectionalLight.shadow.camera.left = -30; mainDirectionalLight.shadow.camera.right = 30;
+            mainDirectionalLight.shadow.camera.top = 35; mainDirectionalLight.shadow.camera.bottom = -30;
+            mainDirectionalLight.shadow.bias = -0.0003;
+            scene.add(mainDirectionalLight);
+
+            // Stadium Field Base Plates
+            const fieldPlaneGeo = new THREE.PlaneGeometry(120, 120);
+            const fieldPlaneMat = new THREE.MeshStandardMaterial({ color: 0x081324, roughness: 0.98 });
+            const fieldPlane = new THREE.Mesh(fieldPlaneGeo, fieldPlaneMat);
+            fieldPlane.rotation.x = -Math.PI / 2;
+            fieldPlane.position.y = -0.02;
+            fieldPlane.receiveShadow = true;
+            scene.add(fieldPlane);
+
+            // Circular Outfield Grass
+            const circularGrassGeo = new THREE.CircleGeometry(42, 64, 0, Math.PI / 2);
+            const circularGrassMat = new THREE.MeshStandardMaterial({ map: buildGrassTextureMap(), roughness: 0.9 });
+            const circularGrass = new THREE.Mesh(circularGrassGeo, circularGrassMat);
+            circularGrass.rotation.x = -Math.PI / 2;
+            circularGrass.rotation.z = -Math.PI / 4;
+            circularGrass.receiveShadow = true;
+            scene.add(circularGrass);
+
+            // Inner Dirt Diamond Square
+            const dirtDiamondGeo = new THREE.PlaneGeometry(BS * 2, BS * 2);
+            const dirtDiamondMat = new THREE.MeshStandardMaterial({ color: 0x9e5c33, roughness: 0.95 });
+            const dirtDiamond = new THREE.Mesh(dirtDiamondGeo, dirtDiamondMat);
+            dirtDiamond.rotation.x = -Math.PI / 2;
+            dirtDiamond.rotation.z = Math.PI / 4;
+            dirtDiamond.position.set(0, 0.005, BS);
+            dirtDiamond.receiveShadow = true;
+            scene.add(dirtDiamond);
+
+            // Infield Circular Grass Island
+            const infieldGrassGeo = new THREE.CircleGeometry(BS * 0.75, 32);
+            const infieldGrass = new THREE.Mesh(infieldGrassGeo, circularGrassMat);
+            infieldGrass.rotation.x = -Math.PI / 2;
+            infieldGrass.position.set(0, 0.01, BS);
+            infieldGrass.receiveShadow = true;
+            scene.add(infieldGrass);
+
+            // White Bases hardware placements
+            const baseGeo = new THREE.BoxGeometry(0.35, 0.04, 0.35);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+            for (let b = 1; b <= 3; b++) {
+                const nodePos = base3DCoordinatesMap[b];
+                const bpMesh = new THREE.Mesh(baseGeo, baseMat);
+                bpMesh.position.copy(nodePos);
+                bpMesh.rotation.y = Math.PI / 4;
+                bpMesh.castShadow = true;
+                scene.add(bpMesh);
+            }
+            
+            const homePlateGeo = new THREE.BoxGeometry(0.32, 0.01, 0.32);
+            const homePlateMesh = new THREE.Mesh(homePlateGeo, baseMat);
+            homePlateMesh.position.set(0, 0.008, 0);
+            homePlateMesh.rotation.y = Math.PI / 4;
+            scene.add(homePlateMesh);
+
+            // Baseball ball mesh
+            const ballGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            ballMesh = new THREE.Mesh(ballGeo, ballMat);
+            ballMesh.position.copy(pitchMound3DPos);
+            ballMesh.castShadow = true;
+            scene.add(ballMesh);
+
+            // Ball Flight tail line
+            const trailGeo = new THREE.BufferGeometry();
+            const trailPosArray = new Float32Array(30 * 3);
+            trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPosArray, 3));
+            const trailMat = new THREE.LineBasicMaterial({ color: 0x06b6d4, linewidth: 2, transparent: true, opacity: 0.75 });
+            ballTailLineMesh = new THREE.Line(trailGeo, trailMat);
+            scene.add(ballTailLineMesh);
+
+            // Characters placements
+            playerEntities.pitcher = buildChubbyEagleMascotModel(0xd97706, 0x111827);
+            playerEntities.pitcher.position.set(0, 0.02, BS * 1.346);
+            playerEntities.pitcher.rotation.y = Math.PI;
+            scene.add(playerEntities.pitcher);
+
+            playerEntities.batter = buildChubbyEagleMascotModel(0x475569, 0x991b1b);
+            playerEntities.batter.position.set(-0.8, 0.02, 0);
+            playerEntities.batter.rotation.y = Math.PI / 2;
+            
+            const batHandleGroup = new THREE.Group();
+            const batCylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
+            batCylinder.position.y = 0.55;
+            batHandleGroup.add(batCylinder);
+            batHandleGroup.name = "batCylinderHandleNode";
+            batHandleGroup.position.set(-0.25, 0.45, 0.15);
+            batHandleGroup.rotation.set(0.5, 0.3, -0.6);
+            playerEntities.batter.add(batHandleGroup);
+            scene.add(playerEntities.batter);
+
+            playerEntities.catcher = buildChubbyEagleMascotModel(0x1e293b, 0x475569);
+            playerEntities.catcher.position.set(0, 0.02, -1.1);
+            scene.add(playerEntities.catcher);
+
+            // 7 Fielders placement
+            Object.keys(fielderStructuralData).forEach(key => {
+                const node = fielderStructuralData[key];
+                const mascot = buildChubbyEagleMascotModel(0x0284c7, 0x0f172a);
+                mascot.position.set(node.x, 0.02, node.z);
+                mascot.rotation.y = Math.PI;
+                scene.add(mascot);
+                playerEntities.fielders[key] = mascot;
+            });
+
+            // Initialize Mathematical Overlays & Labels
+            buildEducationalMathOverlays3D();
+            initializeProjectedHUDLabels();
+        }
+
+        // =================================================================
+        // ACADEMIC MATH OVERLAYS INITIALIZERS
+        // =================================================================
+        function buildEducationalMathOverlays3D() {
+            // Grid and Axis lines (Section 5-9 specs)
+            gridHelper3D = new THREE.GridHelper(80, 40, 0x10b981, 0x1e293b);
+            gridHelper3D.position.y = 0.015;
+            gridHelper3D.visible = false;
+            scene.add(gridHelper3D);
+
+            axisLineX = new THREE.Mesh(new THREE.BoxGeometry(80, 0.03, 0.03), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+            axisLineX.position.y = 0.016; axisLineX.visible = false;
+            scene.add(axisLineX);
+
+            axisLineZ = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 80), new THREE.MeshBasicMaterial({ color: 0x06b6d4 }));
+            axisLineZ.position.y = 0.016; axisLineZ.visible = false;
+            scene.add(axisLineZ);
+
+            const dashedMat = new THREE.LineDashedMaterial({ color: 0xf59e0b, dashSize: 0.3, gapSize: 0.2 });
+            distanceMeasurementLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), dashedMat);
+            distanceMeasurementLine.visible = false;
+            scene.add(distanceMeasurementLine);
+
+            // Foul lines
+            const leftLinePoints = [new THREE.Vector3(0, 0.02, 0), new THREE.Vector3(-40, 0.02, 40)];
+            leftFoulLineLineMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftLinePoints), new THREE.LineBasicMaterial({ color: 0xf43f5e, linewidth: 3 }));
+            leftFoulLineLineMesh.visible = false;
+            scene.add(leftFoulLineLineMesh);
+
+            const rightLinePoints = [new THREE.Vector3(0, 0.02, 0), new THREE.Vector3(40, 0.02, 40)];
+            rightFoulLineLineMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightLinePoints), new THREE.LineBasicMaterial({ color: 0xf43f5e, linewidth: 3 }));
+            rightFoulLineLineMesh.visible = false;
+            scene.add(rightFoulLineLineMesh);
+
+            // Fielders shift coverage guide circle
+            const circlePoints = [];
+            for (let t = 0; t <= 64; t++) {
+                const angle = (t / 64) * Math.PI * 2;
+                circlePoints.push(new THREE.Vector3(24 * Math.cos(angle), 0.02, 24 * Math.sin(angle)));
+            }
+            outfieldShiftCoverageCircleMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePoints), new THREE.LineBasicMaterial({ color: 0x06b6d4, linewidth: 2 }));
+            outfieldShiftCoverageCircleMesh.visible = false;
+            scene.add(outfieldShiftCoverageCircleMesh);
+
+            // Exploration vector circle/line holder mesh
+            explorationLineCircleVectorMesh = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2 }));
+            explorationLineCircleVectorMesh.visible = false;
+            scene.add(explorationLineCircleVectorMesh);
+
+            // Internal Division projection meshes
+            divisionFielderConnectLineMesh = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xa855f7, linewidth: 3 }));
+            divisionFielderConnectLineMesh.visible = false;
+            scene.add(divisionFielderConnectLineMesh);
+
+            divisionFielderVerticalProjectMesh = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xeab308, linewidth: 2 }));
+            divisionFielderVerticalProjectMesh.visible = false;
+            scene.add(divisionFielderVerticalProjectMesh);
+        }
+
+        // =================================================================
+        // DYNAMIC SCREEN PROJECTED 2D HUD SYSTEMS (Rule 1-I specs)
+        // =================================================================
+        function initializeProjectedHUDLabels() {
+            const container = document.getElementById('labels-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Batter Label
+            const batterLabel = document.createElement('div');
+            batterLabel.id = "label-batter"; batterLabel.className = "player-label label-batter-style";
+            batterLabel.innerHTML = "타석: EAGLES BATTER";
+            container.appendChild(batterLabel);
+
+            // Pitcher Label
+            const pitcherLabel = document.createElement('div');
+            pitcherLabel.id = "label-pitcher"; pitcherLabel.className = "player-label";
+            pitcherLabel.innerHTML = "투수: ACE";
+            container.appendChild(pitcherLabel);
+
+            // 7 Fielders HUD elements
+            Object.keys(fielderStructuralData).forEach(key => {
+                const node = fielderStructuralData[key];
+                const label = document.createElement('div');
+                label.id = `label-fielder-${key}`;
+                label.className = "player-label";
+                label.innerHTML = `${node.name} (${node.eng})<br><span style='color:#10b981; font-size:9px;'>수비율 ${node.winRate}</span>`;
+                label.style.textAlign = "center";
+                label.addEventListener('click', () => { handleFielderHUDClick(key); });
+                container.appendChild(label);
+            });
+        }
+
+        function updateProjectedHUDPositions() {
+            const container = document.getElementById('labels-container');
+            if (!container) return;
+            const tempVector = new THREE.Vector3();
+
+            const projectAndPosition = (threePos, domId, yOffset = 1.4) => {
+                const el = document.getElementById(domId);
+                if (!el) return;
+                tempVector.copy(threePos);
+                tempVector.y += yOffset;
+                tempVector.project(camera);
+
+                // Hide elements behind camera clip planes
+                if (tempVector.z > 1) {
+                    el.style.display = 'none';
+                    return;
+                }
+
+                el.style.display = 'block';
+                el.style.visibility = 'hidden'; // Hide to calculate precise size first
+
+                const screenX = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+                const screenY = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
+
+                // Set raw position
+                el.style.left = `${screenX}px`;
+                el.style.top = `${screenY}px`;
+
+                // Measure element bounding client rect
+                const rect = el.getBoundingClientRect();
+                
+                // Position precisely so center-bottom is exactly at the projected point (Rule 1-I)
+                const finalX = screenX - (rect.width / 2);
+                const finalY = screenY - rect.height;
+
+                el.style.left = `${finalX}px`;
+                el.style.top = `${finalY}px`;
+                el.style.visibility = 'visible';
+            };
+
+            if (playerEntities.batter) projectAndPosition(playerEntities.batter.position, 'label-batter', 1.5);
+            if (playerEntities.pitcher) projectAndPosition(playerEntities.pitcher.position, 'label-pitcher', 1.4);
+
+            Object.keys(fielderStructuralData).forEach(key => {
+                const fMesh = playerEntities.fielders[key];
+                const domEl = document.getElementById(`label-fielder-${key}`);
+                if (fMesh && domEl) {
+                    const realCoords = translate3DToRealSpace(fMesh.position.x, fMesh.position.z);
+                    let labelContent = `${fielderStructuralData[key].name} (${fielderStructuralData[key].eng})`;
+                    
+                    if (document.getElementById('btn-tab-coord').classList.contains('active')) {
+                        labelContent += `<br><span style='color:#eab308; font-family:"Share Tech Mono"; font-weight:bold;'>(${realCoords.x.toFixed(1)}, ${realCoords.z.toFixed(1)})</span>`;
+                    } else {
+                        labelContent += `<br><span style='color:#10b981; font-size:9px;'>수비율 ${fielderStructuralData[key].winRate}</span>`;
+                    }
+                    domEl.innerHTML = labelContent;
+                    projectAndPosition(fMesh.position, `label-fielder-${key}`, 1.4);
+                }
+            });
+        }
+
+        // =================================================================
+        // SIMULATOR HUD & ALERT TRANSITIONAL EFFECTS
+        // =================================================================
+        function triggerScreenAlert(mainTitle, subTitle, colorThemeHex = "#10b981") {
+            const alertContainer = document.getElementById('visual-alert');
+            const mainTextEl = document.getElementById('alert-title-main');
+            const subTextEl = document.getElementById('alert-subtitle-sub');
+            if (!alertContainer || !mainTextEl || !subTextEl) return;
+
+            mainTextEl.textContent = mainTitle;
+            mainTextEl.style.color = colorThemeHex;
+            mainTextEl.style.textShadow = `0 0 16px ${colorThemeHex}`;
+            subTextEl.textContent = subTitle;
+
+            alertContainer.classList.add('show');
+            setTimeout(() => { alertContainer.classList.remove('show'); }, 1800);
+        }
+
+        function refreshScoreboardHUD() {
+            const bDots = document.querySelectorAll('.dot-b');
+            const sDots = document.querySelectorAll('.dot-s');
+            const oDots = document.querySelectorAll('.dot-o');
+
+            for (let i = 0; i < 3; i++) { if(bDots[i]) { if(i < countB) bDots[i].classList.add('active'); else bDots[i].classList.remove('active'); } }
+            for (let i = 0; i < 2; i++) { if(sDots[i]) { if(i < countS) sDots[i].classList.add('active'); else sDots[i].classList.remove('active'); } }
+            for (let i = 0; i < 2; i++) { if(oDots[i]) { if(i < countO) oDots[i].classList.add('active'); else oDots[i].classList.remove('active'); } }
+
+            const n1 = document.getElementById('base-node-1'); if(n1) { if(basesRunnerPresenceState[1]) n1.classList.add('active'); else n1.classList.remove('active'); }
+            const n2 = document.getElementById('base-node-2'); if(n2) { if(basesRunnerPresenceState[2]) n2.classList.add('active'); else n2.classList.remove('active'); }
+            const n3 = document.getElementById('base-node-3'); if(n3) { if(basesRunnerPresenceState[3]) n3.classList.add('active'); else n3.classList.remove('active'); }
+
+            const hS = document.getElementById('score-home-val'); if(hS) hS.textContent = homeScore;
+            const aS = document.getElementById('score-away-val'); if(aS) aS.textContent = awayScore;
+            const inn = document.getElementById('hud-inning-text'); if(inn) inn.textContent = currentInningTextString;
+        }
+
+        function runHitProbabilityMetrics() {
+            const hrCut = sluggingAvg * 0.32;
+            const hitCut = hrCut + battingAvg * 1.05;
+            const randomDiceRoll = Math.random();
+
+            // 15% Foul Ball intercept chance
+            if (Math.random() < 0.15) {
+                currentPlayResultType = 'FOUL';
+                let directionSign = Math.random() > 0.5 ? 1 : -1;
+                let rx = directionSign * (16 + Math.random() * 18);
+                let rz = 12 + Math.random() * 14;
+                let mapped3D = translateRealTo3DSpace(rx, rz);
+                ballTargetLanding3DPos.set(mapped3D.x, 0.08, mapped3D.z);
+                return;
+            }
+
+            if (randomDiceRoll < hrCut) {
+                currentPlayResultType = 'HR';
+                let radAngle = -0.42 + Math.random() * 0.84;
+                let realDistance = 106 + Math.random() * 20; // Clear the outfield fence distance
+                let rx = realDistance * Math.sin(radAngle);
+                let rz = realDistance * Math.cos(radAngle);
+                let mapped3D = translateRealTo3DSpace(rx, rz);
+                ballTargetLanding3DPos.set(mapped3D.x, 0.08, mapped3D.z);
+            } else if (randomDiceRoll < hitCut) {
+                currentPlayResultType = (Math.random() < sluggingAvg * 0.65) ? 'DOUBLE' : 'SINGLE';
+                let radAngle = -0.5 + Math.random() * 1.0;
+                let realDistance = (currentPlayResultType === 'DOUBLE') ? 66 + Math.random() * 18 : 36 + Math.random() * 24;
+                let rx = realDistance * Math.sin(radAngle);
+                let rz = realDistance * Math.cos(radAngle);
+                let mapped3D = translateRealTo3DSpace(rx, rz);
+                ballTargetLanding3DPos.set(mapped3D.x, 0.08, mapped3D.z);
+            } else {
+                currentPlayResultType = 'OUT';
+                const keys = Object.keys(fielderStructuralData);
+                const pickKey = keys[Math.floor(Math.random() * keys.length)];
+                const fData = fielderStructuralData[pickKey];
+                ballTargetLanding3DPos.set(fData.x + (Math.random() - 0.5) * 3, 0.08, fData.z + (Math.random() - 0.5) * 3);
+            }
+        }
+
+        // =================================================================
+        // TAB CONTROLS AND MATH INTEGRATION SYSTEM
+        // =================================================================
+        function handleTabTransition(selectedTab) {
+            const btnStats = document.getElementById('btn-tab-stats');
+            const btnCoord = document.getElementById('btn-tab-coord');
+            const contentStats = document.getElementById('tab-content-stats');
+            const contentCoord = document.getElementById('tab-content-coord');
+            if(!btnStats || !btnCoord || !contentStats || !contentCoord) return;
+
+            if (selectedTab === 'STATS') {
+                btnStats.classList.add('active'); btnCoord.classList.remove('active');
+                contentStats.style.display = 'flex'; contentCoord.style.display = 'none';
+                gridHelper3D.visible = overlays3D.coord;
+                axisLineX.visible = overlays3D.coord; axisLineZ.visible = overlays3D.coord;
+            } else {
+                btnCoord.classList.add('active'); btnStats.classList.remove('active');
+                contentCoord.style.display = 'flex'; contentStats.style.display = 'none';
+                gridHelper3D.visible = true;
+                axisLineX.visible = true; axisLineZ.visible = true;
+            }
+            refreshMathGuidanceBoard();
+        }
+
+        function refreshMathGuidanceBoard() {
+            const board = document.getElementById('math-guidance-dashboard');
+            if (!board) return;
+
+            let markup = "";
+            if (gameState === 'FREEZE' && frozenBallPositionReference) {
+                const realB = translate3DToRealSpace(frozenBallPositionReference.x, frozenBallPositionReference.z);
+                if (activeLandingExplorationMode === 'LINE') {
+                    let slope = realB.x !== 0 ? (realB.z / realB.x) : 0;
+                    markup = `<div>
+                        <span style='color:#f43f5e; font-weight:bold;'>직선의 방정식 원점 매핑 분석</span>
+                        <p style='margin:4px 0;'>홈플레이트 $O(0,0)$와 정지한 공 $B(${realB.x.toFixed(1)}, ${realB.z.toFixed(1)})$를 지나는 직선 방정식:</p>
+                        <p style='text-align:center; color:#fbbf24; margin:6px 0;'>$z = ${slope.toFixed(3)}x$</p>
+                        <p style='color:#94a3b8; font-size:11px;'>직선 기울기 $m = \\frac{z_1}{x_1} = ${slope.toFixed(3)}$ 가 성립합니다.</p>
+                    </div>`;
+                } else if (activeLandingExplorationMode === 'CIRCLE') {
+                    markup = `<div>
+                        <span style='color:#06b6d4; font-weight:bold;'>원의 방정식 수비 범위 학습</span>
+                        <p style='margin:4px 0;'>공 정지점 중심 반경 원의 방정식:</p>
+                        <p style='text-align:center; color:#06b6d4; margin:6px 0;'>$(x - ${realB.x.toFixed(1)})^2 + (z - ${realB.z.toFixed(1)})^2 = ${targetLandingExploreRadius.toFixed(1)}^2$</p>
+                        <p style='color:#94a3b8; font-size:11px;'>탐색반경 $R = ${targetLandingExploreRadius.toFixed(1)}m$ 범위에 포섭되는 야수들이 유효 아웃 처리를 시도할 수 있는 기하학적 후보군이 됩니다.</p>
+                    </div>`;
+                } else {
+                    let distHomeToBall = Math.sqrt(realB.x * realB.x + realB.z * realB.z);
+                    markup = `<div>
+                        <span style='color:#fbbf24; font-weight:bold;'>☄️ 정지구 피타고라스 변위량</span>
+                        <p style='margin:4px 0;'>정지 위치 실좌표: $B(${realB.x.toFixed(1)}, ${realB.z.toFixed(1)})$</p>
+                        <p style='margin:4px 0;'>홈에서 정지구까지의 유클리드 거리 $d$:</p>
+                        <p style='text-align:center; color:#10b981; margin:6px 0;'>$d = \\sqrt{${realB.x.toFixed(1)}^2 + ${realB.z.toFixed(1)}^2} \\approx ${distHomeToBall.toFixed(1)}m$</p>
+                    </div>`;
+                }
+            } else {
+                if (overlays3D.coord) {
+                    markup += `<div style='margin-bottom:8px;'><span style='color:#10b981; font-weight:bold;'>1. 평면좌표와 기하 거리</span><br>홈플레이트를 원점 $O(0,0)$으로 설정해 필드의 기하 성분을 실수 차원에 매핑합니다. 두 점 사이의 거리는 피타고라스 공식을 준용합니다.</div>`;
+                }
+                if (overlays3D.line) {
+                    markup += `<div style='margin-bottom:8px;'><span style='color:#f43f5e; font-weight:bold;'>2. 파울라인 직선의 방정식</span><br>좌익선: $z = -x \\quad (x \\le 0)$<br>우익선: $z = x \\quad (x \\ge 0)$<br>유효 페어(FAIR) 판정 영역 조건 부등식: $z > |x|$</div>`;
+                }
+                if (overlays3D.circle) {
+                    markup += `<div style='margin-bottom:8px;'><span style='color:#06b6d4; font-weight:bold;'>3. 수비 범위 원의 방정식</span><br>야수 수비 범위 기하 방정식:<br>$(x - a)^2 + (z - b)^2 = r^2$<br>이 수학적 개념은 기하 정보 분류 kNN 알고리즘의 반경 탐색 설계 모델과 완전 대응합니다.</div>`;
+                }
+                if (overlays3D.translate) {
+                    markup += `<div><span style='color:#a855f7; font-weight:bold;'>4. 주자 평행이동 변위 시스템</span><br>주자가 루상에 진루할 때의 평행이동 좌표 변환 공식:<br>$(x, z) \\to (x + \\Delta x, z + \\Delta z)$<br>완전 완주 시의 루간 변위 총합은 영벡터 $\\vec{0}$ 임이 자명하게 검증됩니다.</div>`;
+                }
+                if (markup === "") {
+                    markup = "오버레이 필터를 클릭하거나 타격을 성공시켜 기하학적 탐구 학습 과정을 전개하십시오.";
+                }
+            }
+
+            board.innerHTML = markup;
+            renderMathInElement(board, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+        }
+
+        // =================================================================
+        // DYNAMIC GRAPHICS BASE RUNNING VECTORS ANIMATION SYSTEM
+        // =================================================================
+        class DynamicBaseRunnerAnimationNode {
+            constructor(startBaseIdx, endBaseIdx, nodeCompletionCallback) {
+                this.actorMesh = buildChubbyEagleMascotModel(0xef6a00, 0xb91c1c); // Orange helmet for safety running
+                this.actorMesh.position.copy(base3DCoordinatesMap[startBaseIdx]);
+                scene.add(this.actorMesh);
+
+                this.startIdx = startBaseIdx;
+                this.endIdx = endBaseIdx;
+                this.currentSegmentIdx = startBaseIdx;
+                this.lerpProgress = 0.0;
+                this.runningSpeedFactor = 8.5; // Linear speed units/sec
+                this.callback = nodeCompletionCallback;
+                this.isDone = false;
+            }
+
+            tick(dt) {
+                if (this.isDone) return;
+
+                const nextIdx = this.currentSegmentIdx + 1;
+                const pStart = base3DCoordinatesMap[this.currentSegmentIdx];
+                const pEnd = base3DCoordinatesMap[nextIdx];
+                const distanceSegment = pStart.distanceTo(pEnd);
+
+                this.lerpProgress += (this.runningSpeedFactor * dt) / distanceSegment;
+
+                if (this.lerpProgress >= 1.0) {
+                    this.lerpProgress = 0.0;
+                    this.actorMesh.position.copy(pEnd);
+                    this.currentSegmentIdx = nextIdx;
+
+                    if (this.currentSegmentIdx >= this.endIdx) {
+                        this.isDone = true;
+                        if (this.callback) this.callback(this);
+                    }
+                } else {
+                    this.actorMesh.position.lerpVectors(pStart, pEnd, this.lerpProgress);
+                    this.actorMesh.lookAt(pEnd.x, this.actorMesh.position.y, pEnd.z);
+                }
+            }
+
+            destroy() {
+                scene.remove(this.actorMesh);
+            }
+        }
+
+        function triggerDynamicBaseRunningFlow(playType) {
+            gameState = 'RUNNING';
+            document.getElementById('action-defense-move').disabled = true;
+
+            playerEntities.dynamicRunners.forEach(runner => runner.destroy());
+            playerEntities.dynamicRunners = [];
+
+            const list = [];
+            if (playType === 'HR') {
+                if (basesRunnerPresenceState[3]) list.push(new DynamicBaseRunnerAnimationNode(3, 4, handleRunnerScoresIncr));
+                if (basesRunnerPresenceState[2]) list.push(new DynamicBaseRunnerAnimationNode(2, 4, handleRunnerScoresIncr));
+                if (basesRunnerPresenceState[1]) list.push(new DynamicBaseRunnerAnimationNode(1, 4, handleRunnerScoresIncr));
+                list.push(new DynamicBaseRunnerAnimationNode(0, 4, handleRunnerScoresIncr));
+
+                basesRunnerPresenceState[1] = basesRunnerPresenceState[2] = basesRunnerPresenceState[3] = false;
+            } else if (playType === 'DOUBLE') {
+                if (basesRunnerPresenceState[3]) list.push(new DynamicBaseRunnerAnimationNode(3, 4, handleRunnerScoresIncr));
+                if (basesRunnerPresenceState[2]) list.push(new DynamicBaseRunnerAnimationNode(2, 4, handleRunnerScoresIncr));
+                if (basesRunnerPresenceState[1]) list.push(new DynamicBaseRunnerAnimationNode(1, 3, handleRunnerHaltOnBaseNode));
+                list.push(new DynamicBaseRunnerAnimationNode(0, 2, handleRunnerHaltOnBaseNode));
+
+                basesRunnerPresenceState[3] = basesRunnerPresenceState[1];
+                basesRunnerPresenceState[2] = true;
+                basesRunnerPresenceState[1] = false;
+            } else if (playType === 'SINGLE') {
+                if (basesRunnerPresenceState[3]) list.push(new DynamicBaseRunnerAnimationNode(3, 4, handleRunnerScoresIncr));
+                if (basesRunnerPresenceState[2]) list.push(new DynamicBaseRunnerAnimationNode(2, 3, handleRunnerHaltOnBaseNode));
+                if (basesRunnerPresenceState[1]) list.push(new DynamicBaseRunnerAnimationNode(1, 2, handleRunnerHaltOnBaseNode));
+                list.push(new DynamicBaseRunnerAnimationNode(0, 1, handleRunnerHaltOnBaseNode));
+
+                if (basesRunnerPresenceState[2]) { basesRunnerPresenceState[3] = true; basesRunnerPresenceState[2] = false; }
+                if (basesRunnerPresenceState[1]) { basesRunnerPresenceState[2] = true; }
+                basesRunnerPresenceState[1] = true;
+            }
+
+            playerEntities.dynamicRunners = list;
+        }
+
+        function handleRunnerHaltOnBaseNode(runner) { evaluateBasesCompleteState(); }
+        function handleRunnerScoresIncr(runner) { homeScore++; evaluateBasesCompleteState(); }
+
+        function evaluateBasesCompleteState() {
+            const allFinished = playerEntities.dynamicRunners.every(runner => runner.isDone);
+            if (allFinished) {
+                gameState = 'PLAY_END';
+                refreshScoreboardHUD();
+                document.getElementById('system-log-text').textContent = "주자 진루 및 득점 연동 완료! 다음 과정을 위해 [초기화]를 눌러 주십시오.";
+                syncStaticRunnerVisibility();
+            }
+        }
+
+        function syncStaticRunnerVisibility() {
+            if (gameState !== 'RUNNING') {
+                playerEntities.dynamicRunners.forEach(runner => runner.destroy());
+                playerEntities.dynamicRunners = [];
+
+                for (let b = 1; b <= 3; b++) {
+                    if (basesRunnerPresenceState[b]) {
+                        const staticRunner = new DynamicBaseRunnerAnimationNode(b, b, null);
+                        staticRunner.actorMesh.rotation.y = Math.PI;
+                        playerEntities.dynamicRunners.push(staticRunner);
+                    }
+                }
+            }
+        }
+
+        // =================================================================
+        // DYNAMIC BALL FREEZING AND MATH EXPLORATION (Section 4-7-B)
+        // =================================================================
+        function triggerLandingBallFreezing() {
+            gameState = 'FREEZE';
+            frozenBallPositionReference = ballMesh.position.clone();
+            
+            document.getElementById('action-defense-move').disabled = true;
+            document.getElementById('freeze-exploration-wrapper').style.display = 'block';
+            
+            // Draw baseline measurement to frozen ball
+            const linePoints = [new THREE.Vector3(0,0.02,0), new THREE.Vector3(frozenBallPositionReference.x, 0.02, frozenBallPositionReference.z)];
+            distanceMeasurementLine.geometry.setFromPoints(linePoints);
+            distanceMeasurementLine.visible = true;
+
+            refreshMathGuidanceBoard();
+        }
+
+        function triggerDivisionAnalysisEngine() {
+            if (!frozenBallPositionReference || gameState !== 'FREEZE') {
+                alert("외야 필드 위에 타구가 페어로 정지되어 있는 탐구 모드 상태에서만 내분 분석이 유효합니다.");
+                return;
+            }
+
+            // Find closest two fielders
+            let fieldersDistanceList = [];
+            Object.keys(fielderStructuralData).forEach(key => {
+                let mObj = playerEntities.fielders[key];
+                let dist = mObj.position.distanceTo(frozenBallPositionReference);
+                fieldersDistanceList.push({ key: key, dist: dist, pos: mObj.position.clone() });
+            });
+            fieldersDistanceList.sort((a,b) => a.dist - b.dist);
+
+            let f1 = fieldersDistanceList[0];
+            let f2 = fieldersDistanceList[1];
+
+            let n1 = fielderStructuralData[f1.key].name;
+            let n2 = fielderStructuralData[f2.key].name;
+
+            // Render connecting line segment between them
+            const segmentPoints = [f1.pos, f2.pos];
+            divisionFielderConnectLineMesh.geometry.setFromPoints(segmentPoints);
+            divisionFielderConnectLineMesh.visible = true;
+
+            // Orthogonal Projection Point calculations (Section 4-7-C)
+            let A = f1.pos; let B = f2.pos; let P = frozenBallPositionReference;
+            let ABVec = new THREE.Vector3().subVectors(B, A);
+            let APVec = new THREE.Vector3().subVectors(P, A);
+            
+            let lenSq = ABVec.lengthSq();
+            let t = lenSq !== 0 ? (APVec.dot(ABVec) / lenSq) : 0;
+            t = Math.max(0, Math.min(1, t)); // Clamp projection inside line segment
+
+            let K = new THREE.Vector3().copy(A).addScaledVector(ABVec, t);
+            
+            // Draw project line
+            divisionFielderVerticalProjectMesh.geometry.setFromPoints([P, K]);
+            divisionFielderVerticalProjectMesh.visible = true;
+
+            let distAK = A.distanceTo(K);
+            let distKB = K.distanceTo(B);
+            let totalSeg = A.distanceTo(B);
+
+            let mRatio = totalSeg !== 0 ? (distAK / totalSeg) * 10 : 5;
+            let nRatio = 10 - mRatio;
+
+            // Map variables back to real coordinate metrics
+            let realA = translate3DToRealSpace(A.x, A.z);
+            let realB = translate3DToRealSpace(B.x, B.z);
+            let realK = translate3DToRealSpace(K.x, K.z);
+
+            const board = document.getElementById('math-guidance-dashboard');
+            if (board) {
+                board.innerHTML = `<div>
+                    <span style='color:#a855f7; font-weight:bold;'>야수 선분 내분비 정밀 기하 측정</span>
+                    <p style='margin:4px 0;'>최근접 야수선분: [${n1}] $\\rightarrow$ [${n2}]</p>
+                    <p style='font-size:11px; color:#cbd5e1;'>야수A 좌표: $A(${realA.x.toFixed(1)}, ${realA.z.toFixed(1)})$, 야수B 좌표: $B(${realB.x.toFixed(1)}, ${realB.z.toFixed(1)})$</p>
+                    <p style='margin:4px 0;'>수직 투영 사영 분할점 $K$: $(${realK.x.toFixed(1)}, ${realK.z.toFixed(1)})$</p>
+                    <p style='color:#fbbf24; font-weight:bold; margin:6px 0; text-align:center;'>내분 공식 정량 비율 $m : n = ${mRatio.toFixed(1)} : ${nRatio.toFixed(1)}$</p>
+                    <p style='font-size:10px; color:#94a3b8; line-height:1.4;'>내분 공식 유도 증명: $K_x = \\frac{m B_x + n A_x}{m+n}$, $K_z = \\frac{m B_z + n A_z}{m+n}$ 의 고등학교 기하 차원 정합성이 필드 전역에서 완벽히 수립됩니다.</p>
+                </div>`;
+                renderMathInElement(board, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+            }
+            document.getElementById('system-log-text').textContent = `[내분 수식 분석]: 최근접 수비수 ${n1}와 ${n2}를 연결하는 선분의 사영분 내분비가 정상 산출되었습니다.`;
+        }
+
+        function clearBallFreezeOverlayMechanisms() {
+            document.getElementById('freeze-exploration-wrapper').style.display = 'none';
+            distanceMeasurementLine.visible = false;
+            explorationLineCircleVectorMesh.visible = false;
+            divisionFielderConnectLineMesh.visible = false;
+            divisionFielderVerticalProjectMesh.visible = false;
+            activeLandingExplorationMode = 'NONE';
+            
+            const exploreLineBtn = document.getElementById('btn-explore-line');
+            const exploreCircleBtn = document.getElementById('btn-explore-circle');
+            if(exploreLineBtn && exploreCircleBtn) {
+                exploreLineBtn.classList.replace('btn-amber','btn-slate');
+                exploreCircleBtn.classList.replace('btn-sky','btn-slate');
+            }
+            document.getElementById('circle-explore-slider-box').style.display = 'none';
+        }
+
+        function handleFielderHUDClick(fielderKey) {
+            if (!document.getElementById('btn-tab-coord').classList.contains('active')) return;
+            
+            selectedFielderKeyTracker = fielderKey;
+            let mesh = playerEntities.fielders[fielderKey];
+            let realCoords = translate3DToRealSpace(mesh.position.x, mesh.position.z);
+
+            const nameEl = document.getElementById('target-fielder-name');
+            const inputX = document.getElementById('pos-input-x');
+            const inputZ = document.getElementById('pos-input-z');
+            if(nameEl && inputX && inputZ) {
+                nameEl.textContent = `${fielderStructuralData[fielderKey].name} (${fielderStructuralData[fielderKey].eng})`;
+                inputX.value = Math.round(realCoords.x);
+                inputZ.value = Math.round(realCoords.z);
+            }
+            document.getElementById('system-log-text').textContent = `${fielderStructuralData[fielderKey].name} 가 제어 대상 야수로 바인딩되었습니다.`;
+        }
+
+        function triggerManualFielderPlaneMove() {
+            if (!selectedFielderKeyTracker) {
+                alert("HUD 머리 명찰이나 요소를 선택하여 대상을 지정하십시오.");
+                return;
+            }
+            const inputX = document.getElementById('pos-input-x');
+            const inputZ = document.getElementById('pos-input-z');
+            if(!inputX || !inputZ) return;
+
+            let targetRealX = parseFloat(inputX.value);
+            let targetRealZ = parseFloat(inputZ.value);
+
+            if (isNaN(targetRealX) || isNaN(targetRealZ) || targetRealX < -35 || targetRealX > 35 || targetRealZ < 0 || targetRealZ > 55) {
+                alert("유효한 수비 경계 공간 좌표 영역에 숫자를 입력하십시오. (X: -35~35, Z: 0~55)");
+                return;
+            }
+
+            let mapped3D = translateRealTo3DSpace(targetRealX, targetRealZ);
+            let mesh = playerEntities.fielders[selectedFielderKeyTracker];
+            
+            let startReal = translate3DToRealSpace(mesh.position.x, mesh.position.z);
+            let realDistanceTravelled = Math.sqrt((targetRealX - startReal.x) * (targetRealX - startReal.x) + (targetRealZ - startReal.z) * (targetRealZ - startReal.z));
+
+            mesh.position.set(mapped3D.x, 0.02, mapped3D.z);
+            
+            const mathProcessEl = document.getElementById('math-calc-process');
+            if (mathProcessEl) {
+                mathProcessEl.innerHTML = `<div>
+                    <span style='color:#10b981; font-weight:bold;'>기하 거리 수치 연산 프로세스</span>
+                    <p style='margin:2px 0;'>출발: $S(${startReal.x.toFixed(1)}, ${startReal.z.toFixed(1)})$ $\\to$ 도착: $E(${targetRealX.toFixed(1)}, ${targetRealZ.toFixed(1)})$</p>
+                    <p style='color:#06b6d4;'>$d = \\sqrt{(${targetRealX.toFixed(1)} - (${startReal.x.toFixed(1)}))^2 + (${targetRealZ.toFixed(1)} - ${startReal.z.toFixed(1)})^2}$</p>
+                    <p style='font-size:13px; color:#fbbf24; font-weight:bold;'>실제 수평 평행 이동 거리: ${realDistanceTravelled.toFixed(2)}m</p>
+                </div>`;
+                renderMathInElement(mathProcessEl, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+            }
+            updateProjectedHUDPositions();
+        }
+
+        // =================================================================
+        // BIG DATA INTERACTIVE SCATTER PLOT ENGINE (SVG MATRIX)
+        // =================================================================
+        function drawClassificationKnnScatterPlot() {
+            const svg = document.getElementById('svg-scatter-root');
+            if (!svg) return;
+            svg.innerHTML = '';
+
+            const state = svgZoomEngineState.cls;
+            const groupNode = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            groupNode.setAttribute("transform", `translate(${state.tx}, ${state.ty}) scale(${state.scale})`);
+            svg.appendChild(groupNode);
+
+            const mapX = (slg) => 80 + ((slg - 0.2) / 0.6) * 440;
+            const mapY = (bb) => 420 - (bb / 120) * 350;
+
+            // Grid backgrounds
+            for (let s = 0.2; s <= 0.8; s += 0.1) {
+                let x = mapX(s);
+                let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x); line.setAttribute("y1", 70); line.setAttribute("x2", x); line.setAttribute("y2", 420);
+                line.setAttribute("stroke", "#1e293b"); line.setAttribute("stroke-dasharray", "3,3");
+                groupNode.appendChild(line);
+
+                let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x); text.setAttribute("y", 440); text.setAttribute("fill", "#64748b");
+                text.setAttribute("font-size", "10"); text.setAttribute("text-anchor", "middle");
+                text.textContent = s.toFixed(1);
+                groupNode.appendChild(text);
+            }
+            for (let b = 0; b <= 120; b += 20) {
+                let y = mapY(b);
+                let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 80); line.setAttribute("y1", y); line.setAttribute("x2", 520); line.setAttribute("y2", y);
+                line.setAttribute("stroke", "#1e293b"); line.setAttribute("stroke-dasharray", "3,3");
+                groupNode.appendChild(line);
+
+                let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", 60); text.setAttribute("y", y + 4); text.setAttribute("fill", "#64748b");
+                text.setAttribute("font-size", "10"); text.setAttribute("text-anchor", "end");
+                text.textContent = b;
+                groupNode.appendChild(text);
+            }
+
+            // Axis labels
+            let xLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xLabel.setAttribute("x", 300); xLabel.setAttribute("y", 475); xLabel.setAttribute("fill", "#cbd5e1");
+            xLabel.setAttribute("font-size", "11"); xLabel.setAttribute("text-anchor", "middle"); xLabel.setAttribute("font-weight", "bold");
+            xLabel.textContent = "장타율 (Slugging Percentage)";
+            groupNode.appendChild(xLabel);
+
+            let yLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            yLabel.setAttribute("transform", "rotate(-90 25 245)"); yLabel.setAttribute("x", 25); yLabel.setAttribute("y", 245);
+            yLabel.setAttribute("fill", "#cbd5e1"); yLabel.setAttribute("font-size", "11"); yLabel.setAttribute("text-anchor", "middle"); yLabel.setAttribute("font-weight", "bold");
+            yLabel.textContent = "볼넷 개수 (Base on Balls)";
+            groupNode.appendChild(yLabel);
+
+            // Distance dotted line connecting two clicked points
+            if (selectedClsPointsArray.length === 2) {
+                let pt1 = selectedClsPointsArray[0]; let pt2 = selectedClsPointsArray[1];
+                let distLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                distLine.setAttribute("x1", mapX(pt1.slg)); distLine.setAttribute("y1", mapY(pt1.bb));
+                distLine.setAttribute("x2", mapX(pt2.slg)); distLine.setAttribute("y2", mapY(pt2.bb));
+                distLine.setAttribute("stroke", "#f59e0b"); distLine.setAttribute("stroke-width", "2.5"); distLine.setAttribute("stroke-dasharray", "4,4");
+                groupNode.appendChild(distLine);
+            }
+
+            // kNN radius search circle indicator visual
+            let radVal = parseFloat(document.getElementById('knn-radius-slider').value);
+            let centerSlg = 0.45, centerBb = 60;
+            if (selectedClsPointsArray.length > 0) {
+                centerSlg = selectedClsPointsArray[selectedClsPointsArray.length - 1].slg;
+                centerBb = selectedClsPointsArray[selectedClsPointsArray.length - 1].bb;
+            }
+            
+            let cx = mapX(centerSlg); let cy = mapY(centerBb);
+            let scaleXFactor = (radVal / 0.6) * 440;
+
+            let knnCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            knnCircle.setAttribute("cx", cx); knnCircle.setAttribute("cy", cy); knnCircle.setAttribute("r", scaleXFactor);
+            knnCircle.setAttribute("fill", "rgba(16,185,129,0.06)"); knnCircle.setAttribute("stroke", "#10b981"); knnCircle.setAttribute("stroke-width", "1.5");
+            groupNode.appendChild(knnCircle);
+
+            // Draw player data points
+            kboClassificationDataset.forEach(pt => {
+                let px = mapX(pt.slg); let py = mapY(pt.bb);
+                let isSelected = selectedClsPointsArray.some(s => s.name === pt.name);
+
+                let dotCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                dotCircle.setAttribute("cx", px); dotCircle.setAttribute("cy", py);
+                dotCircle.setAttribute("r", isSelected ? "8" : "5.5");
+                dotCircle.setAttribute("fill", pt.color);
+                dotCircle.setAttribute("stroke", isSelected ? "#ffffff" : (pt.undervalued ? "#06b6d4" : "none"));
+                dotCircle.setAttribute("stroke-width", (isSelected || pt.undervalued) ? "2" : "0");
+                dotCircle.style.transition = "all 0.15s";
+                
+                dotCircle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleScatterPointClick(pt);
+                });
+                groupNode.appendChild(dotCircle);
+
+                let labelText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                labelText.setAttribute("x", px); labelText.setAttribute("y", py - 9); labelText.setAttribute("fill", pt.undervalued ? "#06b6d4" : "#94a3b8");
+                labelText.setAttribute("font-size", "9"); labelText.setAttribute("text-anchor", "middle");
+                labelText.textContent = pt.name;
+                groupNode.appendChild(labelText);
+            });
+
+            runkNNClassificationAlgorithmOnDataset(centerSlg, centerBb, radVal);
+        }
+
+        function handleScatterPointClick(point) {
+            if (selectedClsPointsArray.length >= 2) {
+                selectedClsPointsArray = [];
+            }
+            selectedClsPointsArray.push(point);
+            drawClassificationKnnScatterPlot();
+
+            const panel = document.getElementById('cls-math-log-panel');
+            if (!panel) return;
+
+            if (selectedClsPointsArray.length === 2) {
+                let p1 = selectedClsPointsArray[0]; let p2 = selectedClsPointsArray[1];
+                let euclideanVal = Math.sqrt((p2.slg - p1.slg) * (p2.slg - p1.slg) + ((p2.bb - p1.bb)/120) * ((p2.bb - p1.bb)/120));
+                panel.innerHTML = `<div>
+                    <span style='color:#fbbf24; font-weight:bold;'>유클리드 데이터 차원 거리</span>
+                    <p style='margin:4px 0;'>데이터A: ${p1.name} (${p1.type})</p>
+                    <p style='margin:4px 0;'>데이터B: ${p2.name} (${p2.type})</p>
+                    <p style='font-size:11px; color:#cbd5e1; margin-top:6px;'>Normalized Distance 공식:</p>
+                    <p style='color:#10b981; font-size:11px;'>$d = \\sqrt{(\\Delta SLG)^2 + (\\Delta BB_{norm})^2} \\approx ${euclideanVal.toFixed(4)}$</p>
+                </div>`;
+                renderMathInElement(panel, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+            }
+        }
+
+        function runkNNClassificationAlgorithmOnDataset(cx, cy, radius) {
+            let neighbors = [];
+            kboClassificationDataset.forEach(pt => {
+                let d = Math.sqrt((pt.slg - cx) * (pt.slg - cx) + ((pt.bb - cy)/120) * ((pt.bb - cy)/120));
+                if (d <= radius) {
+                    neighbors.push({ data: pt, dist: d });
+                }
+            });
+            neighbors.sort((a,b) => a.dist - b.dist);
+
+            const panel = document.getElementById('cls-math-log-panel');
+            if (selectedClsPointsArray.length === 2 || !panel) return;
+
+            const votes = {};
+            neighbors.forEach(n => {
+                votes[n.data.type] = (votes[n.data.type] || 0) + 1;
+            });
+
+            let predictedClassificationType = "충분한 인근 데이터 없음";
+            let maxVoteCount = 0;
+            Object.keys(votes).forEach(t => {
+                if (votes[t] > maxVoteCount) { maxVoteCount = votes[t]; predictedClassificationType = t; }
+            });
+
+            panel.innerHTML = `<div>
+                <span style='color:#06b6d4; font-weight:bold;'>kNN AI 최근접 탐색 결과</span>
+                <p style='margin:4px 0;'>탐색 원 범위 내부 이웃 수: <b>${neighbors.length}개</b></p>
+                <div style='font-size:11px; color:#cbd5e1; margin:6px 0; max-height:60px; overflow-y:auto;'>
+                    ${neighbors.map(n => `· ${n.data.name} (${n.data.type}) - ${n.dist.toFixed(3)}`).join('<br>')}
+                </div>
+                <p style='font-size:12px; color:#10b981; font-weight:bold;'>다수결 판별 분류 예측:<br><span style='color:#fbbf24; font-size:13px;'>[${predictedClassificationType}]</span></p>
+                <p style='font-size:9px; color:#64748b; margin-top:4px; line-height:1.3;'>※ 주황색 구면 링은 최근접 공간 탐색 반경 원의 방정식입니다.</p>
+            </div>`;
+        }
+
+        function runLinearRegressionAnalysis() {
+            const svg = document.getElementById('svg-scatter-root');
+            if (!svg) return;
+            svg.innerHTML = '';
+
+            const state = svgZoomEngineState.reg;
+            const groupNode = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            groupNode.setAttribute("transform", `translate(${state.tx}, ${state.ty}) scale(${state.scale})`);
+            svg.appendChild(groupNode);
+
+            const mapX = (rbi) => 80 + (rbi / 100) * 440;
+            const mapY = (hr) => 420 - (hr / 40) * 350;
+
+            // Grid guidelines
+            for (let r = 0; r <= 100; r += 20) {
+                let x = mapX(r);
+                let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x); line.setAttribute("y1", 70); line.setAttribute("x2", x); line.setAttribute("y2", 420);
+                line.setAttribute("stroke", "#1e293b"); groupNode.appendChild(line);
+
+                let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x); text.setAttribute("y", 440); text.setAttribute("fill", "#64748b");
+                text.setAttribute("font-size", "10"); text.setAttribute("text-anchor", "middle"); text.textContent = r;
+                groupNode.appendChild(text);
+            }
+            for (let h = 0; h <= 40; h += 10) {
+                let y = mapY(h);
+                let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 80); line.setAttribute("y1", y); line.setAttribute("x2", 520); line.setAttribute("y2", y);
+                line.setAttribute("stroke", "#1e293b"); groupNode.appendChild(line);
+
+                let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", 60); text.setAttribute("y", y + 4); text.setAttribute("fill", "#64748b");
+                text.setAttribute("font-size", "10"); text.setAttribute("text-anchor", "end"); text.textContent = h;
+                groupNode.appendChild(text);
+            }
+
+            // Least Squares Method calculations (Section 2-F)
+            let n = kboRegressionDataset.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            kboRegressionDataset.forEach(d => {
+                sumX += d.rbi; sumY += d.hr; sumXY += (d.rbi * d.hr); sumXX += (d.rbi * d.rbi);
+            });
+            
+            let slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            let intercept = (sumY - slope * sumX) / n;
+
+            // R2 Coefficient
+            let avgY = sumY / n;
+            let ssTot = 0, ssRes = 0;
+            kboRegressionDataset.forEach(d => {
+                let pred = slope * d.rbi + intercept;
+                ssTot += (d.hr - avgY) * (d.hr - avgY);
+                ssRes += (d.hr - pred) * (d.hr - pred);
+            });
+            let rSquared = 1 - (ssRes / ssTot);
+
+            // Draw line
+            let regLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            regLine.setAttribute("x1", mapX(0)); regLine.setAttribute("y1", mapY(intercept));
+            regLine.setAttribute("x2", mapX(100)); regLine.setAttribute("y2", mapY(slope * 100 + intercept));
+            regLine.setAttribute("stroke", "#f43f5e"); regLine.setAttribute("stroke-width", "2.5");
+            groupNode.appendChild(regLine);
+
+            // Draw data points & residual lines
+            kboRegressionDataset.forEach(pt => {
+                let px = mapX(pt.rbi); let py = mapY(pt.hr);
+                let predYVal = slope * pt.rbi + intercept;
+                let pPredY = mapY(predYVal);
+
+                let resLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                resLine.setAttribute("x1", px); resLine.setAttribute("y1", py);
+                resLine.setAttribute("x2", px); resLine.setAttribute("y2", pPredY);
+                resLine.setAttribute("stroke", (pt.hr < predYVal) ? "#06b6d4" : "#e11d48"); // Cyan for undervalued, Red for overvalued
+                resLine.setAttribute("stroke-width", "1");
+                groupNode.appendChild(resLine);
+
+                let dotCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                dotCircle.setAttribute("cx", px); dotCircle.setAttribute("cy", py); dotCircle.setAttribute("r", "5");
+                dotCircle.setAttribute("fill", (pt.hr < predYVal) ? "#06b6d4" : "#ef4444");
+                
+                dotCircle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    renderResidualDetailsOnPanel(pt, predYVal, pt.hr - predYVal);
+                });
+                groupNode.appendChild(dotCircle);
+
+                let label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                label.setAttribute("x", px); label.setAttribute("y", py - 7); label.setAttribute("fill", "#cbd5e1");
+                label.setAttribute("font-size", "8"); label.setAttribute("text-anchor", "middle");
+                label.textContent = pt.name;
+                groupNode.appendChild(label);
+            });
+
+            const outPanel = document.getElementById('reg-math-log-panel');
+            if (outPanel && !outPanel.dataset.clickedActive) {
+                outPanel.innerHTML = `<div>
+                    <span style='color:#f43f5e; font-weight:bold;'>회귀식 연산 도출</span>
+                    <p style='margin:4px 0; font-family:"Share Tech Mono"'>$y = ${slope.toFixed(3)}x + (${intercept.toFixed(3)})$</p>
+                    <p style='margin:4px 0;'>AI 모델 결정계수 $R^2 = ${rSquared.toFixed(4)}$</p>
+                    <p style='color:#94a3b8; font-size:10px; line-height:1.4; margin-top:6px;'>결정계수 $R^2$가 1에 근사할수록 회귀 모델의 통계 신뢰도가 우수합니다. 임의의 데이터 도트를 선택해 잔차 가치를 파악하십시오.</p>
+                </div>`;
+                renderMathInElement(outPanel, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+            }
+        }
+
+        function renderResidualDetailsOnPanel(player, predY, residual) {
+            const panel = document.getElementById('reg-math-log-panel');
+            if (!panel) return;
+            panel.dataset.clickedActive = "true";
+
+            let interpretationMarkup = residual < 0 
+                ? "<span style='color:#06b6d4; font-weight:bold;'>[저평가 머니볼 핵심 우량 선수]</span><br>생산 타점 대비 홈런 비율이 모델 예측선보다 보수적인 음수 잔차 상태입니다. 저평가되어 효율 극대화가 가능한 특급 원석 자원입니다."
+                : "<span style='color:#ef4444; font-weight:bold;'>[과대평가 리스크]</span><br>데이터 생산 타점에 비해 홈런 비중이 과도하게 솟아오른 양수 잔차 상태입니다. 시장 몸값 대비 거품 리스크가 내포된 자원입니다.";
+
+            panel.innerHTML = `<div>
+                <span style='color:#fbbf24; font-weight:bold;'>선수 잔차 오차 분석</span>
+                <p style='margin:4px 0; font-size:13px;'>선수명: <b>${player.name}</b></p>
+                <p style='margin:2px 0;'>실제 홈런수 $y = ${player.hr}$개</p>
+                <p style='margin:2px 0;'>회귀선 예측치 $\\hat{y} = ${predY.toFixed(2)}$개</p>
+                <p style='margin:4px 0; color:#10b981; font-size:12px; font-weight:bold;'>수학적 잔차 $e = y - \\hat{y} = ${residual.toFixed(2)}$</p>
+                <div style='border-top:1px dashed #334155; margin-top:6px; padding-top:6px; font-size:11px; line-height:1.4; color:#cbd5e1;'>
+                    ${interpretationMarkup}
+                </div>
+                <button class='action-btn btn-slate' id='btn-clear-reg-residual' style='width:100%; font-size:10px; padding:4px; margin-top:8px;'>회귀 요약식 복구</button>
+            </div>`;
+            renderMathInElement(panel, { delimiters: [{left: "$", right: "$", display: false}], throwOnError: false });
+
+            document.getElementById('btn-clear-reg-residual').addEventListener('click', () => {
+                delete panel.dataset.clickedActive;
+                runLinearRegressionAnalysis();
+            });
+        }
+
+        // =================================================================
+        // SVG ZOOM & DRAGGING INTERACTION (Section 5-12 Specs)
+        // =================================================================
+        function setupInteractiveSVGZoomMechanisms() {
+            const svg = document.getElementById('svg-scatter-root');
+            if(!svg) return;
+
+            svg.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                let mode = currentScatterActiveMode.toLowerCase();
+                let state = svgZoomEngineState[mode];
+                let zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+                state.scale = Math.max(0.1, Math.min(5.0, state.scale * zoomFactor));
+                
+                if (currentScatterActiveMode === 'CLS') drawClassificationKnnScatterPlot();
+                else runLinearRegressionAnalysis();
+            });
+
+            svg.addEventListener('mousedown', (e) => {
+                let mode = currentScatterActiveMode.toLowerCase();
+                let state = svgZoomEngineState[mode];
+                state.isDragging = true;
+                state.startX = e.clientX - state.tx;
+                state.startY = e.clientY - state.ty;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                let mode = currentScatterActiveMode.toLowerCase();
+                let state = svgZoomEngineState[mode];
+                if (!state.isDragging) return;
+                state.tx = e.clientX - state.startX;
+                state.ty = e.clientY - state.startY;
+                
+                if (currentScatterActiveMode === 'CLS') drawClassificationKnnScatterPlot();
+                else runLinearRegressionAnalysis();
+            });
+
+            window.addEventListener('mouseup', () => {
+                Object.keys(svgZoomEngineState).forEach(key => { svgZoomEngineState[key].isDragging = false; });
+            });
+        }
+
+        // =================================================================
+        // SIMULATION FRAME RENDER ENGINE LOOP
+        // =================================================================
+        function executeFrameLoopSystem() {
+            requestAnimationFrame(executeFrameLoopSystem);
+
+            const dt = clock.getDelta();
+            
+            if (gameState === 'PITCHING') {
+                timingBarProgressTracker += dt * 1000;
+                let t = Math.min(1.0, timingBarProgressTracker / timingMaxLimit);
+                
+                const bar = document.getElementById('swing-timing-meter');
+                if(bar) bar.style.width = `${t * 100}%`;
+
+                const ballTrajectory = new THREE.Vector3().lerpVectors(pitchMound3DPos, homePlate3DPos, t);
+                if (!pitchIsTargetStrikeZone) {
+                    ballTrajectory.x += Math.sin(t * Math.PI) * 0.7; // Bow ball curve
+                }
+                ballTrajectory.y = 0.4 + Math.sin(t * Math.PI) * 0.8;
+                ballMesh.position.copy(ballTrajectory);
+
+                if (t >= 1.0) {
+                    gameState = 'PITCHED_WAITING';
+                    evaluateLookingOutcome();
+                }
+            }
+
+            if (gameState === 'HITTING') {
+                hitTimeDurationElapsed += dt;
+                let progress = Math.min(1.0, hitTimeDurationElapsed / flightTotalTimeInterval);
+
+                let peakY = (currentPlayResultType === 'HR') ? 8.5 : 4.0;
+                let currentXYZ = new THREE.Vector3();
+                currentXYZ.x = homePlate3DPos.x + (ballTargetLanding3DPos.x - homePlate3DPos.x) * progress;
+                currentXYZ.z = homePlate3DPos.z + (ballTargetLanding3DPos.z - homePlate3DPos.z) * progress;
+                currentXYZ.y = 0.3 + Math.sin(progress * Math.PI) * peakY;
+                ballMesh.position.copy(currentXYZ);
+
+                if (progress >= 1.0) {
+                    // Lock ball down for geometrical exploration directly on the field (Section 4-7-B)
+                    triggerLandingBallFreezing();
+                }
+            }
+
+            if (gameState === 'RUNNING') {
+                playerEntities.dynamicRunners.forEach(runner => runner.tick(dt));
+            }
+
+            // Chubby breathing idle animations
+            let runningTime = clock.getElapsedTime();
+            if (playerEntities.pitcher) playerEntities.pitcher.scale.y = 0.95 + Math.sin(runningTime * 4.0) * 0.03;
+            if (playerEntities.batter) playerEntities.batter.scale.y = 0.95 + Math.sin(runningTime * 4.0) * 0.03;
+
+            // Render projected HUD Labels (Section 5-13)
+            updateProjectedHUDPositions();
+
+            if (orbitControls) orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        function evaluateLookingOutcome() {
+            document.getElementById('action-pitch-ball').disabled = true;
+            document.getElementById('action-swing-bat').disabled = true;
+
+            if (pitchIsTargetStrikeZone) {
+                countS++;
+                document.getElementById('system-log-text').textContent = "루킹 스트라이크! 스트라이크 존 한가운데를 파고들었습니다.";
+                triggerScreenAlert("STRIKE!", "스트라이크 존을 날카롭게 찌르는 칼제구!", "#ef4444");
+            } else {
+                countB++;
+                document.getElementById('system-log-text').textContent = "볼! 예리한 유인구를 완벽하게 걸러냈습니다.";
+                triggerScreenAlert("BALL!", "안구 정밀 선구안으로 걸러낸 실속 볼!", "#10b981");
+            }
+            refreshScoreboardHUD();
+            setTimeout(verifyInningConditionStates, 1300);
+        }
+
+        function verifyInningConditionStates() {
+            if (countS >= 3) {
+                countO++;
+                triggerScreenAlert("STRIKE OUT!", "3스트라이크 삼진 아웃!", "#ef4444");
+                resetPitcherAtBatState();
+            } else if (countB >= 4) {
+                triggerScreenAlert("BASE ON BALLS!", "볼넷 밀어내기 출루 성립!", "#a855f7");
+                triggerDynamicBaseRunningFlow('SINGLE');
+                resetPitcherAtBatState();
+            } else {
+                gameState = 'IDLE';
+                ballMesh.position.copy(pitchMound3DPos);
+                document.getElementById('action-pitch-ball').disabled = false;
+                document.getElementById('swing-timing-meter').style.width = '0%';
+            }
+            
+            if (countO >= 3) {
+                countO = 0;
+                basesRunnerPresenceState[1] = basesRunnerPresenceState[2] = basesRunnerPresenceState[3] = false;
+                triggerScreenAlert("CHANGE INNING", "쓰리아웃 이닝 공수교대!", "#f43f5e");
+                resetPitcherAtBatState();
+            }
+            refreshScoreboardHUD();
+            syncStaticRunnerVisibility();
+        }
+
+        function resetPitcherAtBatState() {
+            countB = 0; countS = 0;
+            gameState = 'IDLE';
+            ballMesh.position.copy(pitchMound3DPos);
+            document.getElementById('action-pitch-ball').disabled = false;
+            document.getElementById('swing-timing-meter').style.width = '0%';
+            clearBallFreezeOverlayMechanisms();
+        }
+
+        function processSwingAction() {
+            if (gameState !== 'PITCHING') return;
+
+            // Trigger Bat swing animation
+            const bat = playerEntities.batter.getObjectByName("batCylinderHandleNode");
+            if (bat) { bat.rotation.set(-0.2, 1.6, -1.5); }
+
+            let timing = timingBarProgressTracker;
+            let minTimingWin = timingMaxLimit * 0.45;
+            let maxTimingWin = timingMaxLimit * 0.82;
+
+            if (timing < minTimingWin || timing > maxTimingWin) {
+                gameState = 'IDLE';
+                countS++;
+                document.getElementById('system-log-text').textContent = "헛스윙! 정교한 타구 타이밍에 실패했습니다.";
+                triggerScreenAlert("STRIKE / SWING MISS", "타이밍이 아쉬운 파괴력 헛스윙!", "#ef4444");
+                document.getElementById('action-swing-bat').disabled = true;
+                refreshScoreboardHUD();
+                setTimeout(verifyInningConditionStates, 1300);
+                return;
+            }
+
+            // High timing compliance: resolve Sabermetrics hit
+            gameState = 'HITTING';
+            hitTimeDurationElapsed = 0;
+            ballMesh.position.copy(homePlate3DPos);
+            document.getElementById('action-swing-bat').disabled = true;
+
+            applyOutfieldShiftCoverageOnBatterSlg();
+            runHitProbabilityMetrics();
+
+            document.getElementById('system-log-text').textContent = `[타격 성공]: 통계 결과 [${currentPlayResultType}] 기하 궤적으로 발사 비행합니다.`;
+        }
+
+        function applyOutfieldShiftCoverageOnBatterSlg() {
+            // Apply defensive shift when SLG is extreme (Section 4-7-A specs)
+            const dynamicRadius = (sluggingAvg > 0.520) ? 31.0 : 24.0;
+            
+            // Rebuild shift circles
+            const circlePoints = [];
+            for (let t = 0; t <= 64; t++) {
+                const angle = (t / 64) * Math.PI * 2;
+                circlePoints.push(new THREE.Vector3(dynamicRadius * Math.cos(angle), 0.02, dynamicRadius * Math.sin(angle)));
+            }
+            outfieldShiftCoverageCircleMesh.geometry.setFromPoints(circlePoints);
+
+            const shiftAngles = { 'lf': Math.PI * 0.62, 'cf': Math.PI * 0.50, 'rf': Math.PI * 0.38 };
+            Object.keys(shiftAngles).forEach(key => {
+                let ang = shiftAngles[key];
+                let tx3d = dynamicRadius * Math.cos(ang);
+                let tz3d = dynamicRadius * Math.sin(ang);
+                
+                fielderStructuralData[key].curX = tx3d;
+                fielderStructuralData[key].curZ = tz3d;
+                playerEntities.fielders[key].position.set(tx3d, 0.02, tz3d);
+            });
+            updateProjectedHUDPositions();
+        }
+
+        // =================================================================
+        // COMPONENT INITIALIZERS & TAB HANDLING
+        // =================================================================
+        const timingMaxLimit = 920; // Max timing range in ms
+
+        function handlePrimaryInitialization() {
+            initWebGLCore();
+            setupInteractiveSVGZoomMechanisms();
+            executeFrameLoopSystem();
+
+            // Preset value binding
+            document.getElementById('preset-picker-select').value = 'preset-0';
+            updateSlidersAndSabermetricsVal();
+        }
+
+        function updateSlidersAndSabermetricsVal() {
+            battingAvg = parseFloat(document.getElementById('slider-input-ba').value);
+            onBaseAvg = parseFloat(document.getElementById('slider-input-obp').value);
+            sluggingAvg = parseFloat(document.getElementById('slider-input-slg').value);
+
+            document.getElementById('val-lbl-ba').textContent = battingAvg.toFixed(3).substring(1);
+            document.getElementById('val-lbl-obp').textContent = onBaseAvg.toFixed(3).substring(1);
+            document.getElementById('val-lbl-slg').textContent = sluggingAvg.toFixed(3).substring(1);
+
+            computedOPSVal = onBaseAvg + sluggingAvg;
+            document.getElementById('val-lbl-ops').textContent = computedOPSVal.toFixed(3);
+
+            let gradeClassStr = "평균적 타격";
+            if(computedOPSVal >= 0.900) gradeClassStr = "슈퍼스타";
+            else if(computedOPSVal >= 0.800) gradeClassStr = "올스타급";
+            else if(computedOPSVal >= 0.700) gradeClassStr = "주전선수급";
+            document.getElementById('val-lbl-grade').textContent = gradeClassStr;
+
+            // Projections UI
+            let hrPct = sluggingAvg * 0.32 * 100;
+            let hitPct = battingAvg * 1.05 * 100;
+            let outPct = 100 - (hrPct + hitPct);
+
+            document.getElementById('calc-prob-hr').textContent = `${hrPct.toFixed(1)}%`;
+            document.getElementById('calc-prob-hit').textContent = `${hitPct.toFixed(1)}%`;
+            document.getElementById('calc-prob-out').textContent = `${outPct.toFixed(1)}%`;
+            
+            refreshMathGuidanceBoard();
+        }
+
+        // =================================================================
+        // SYSTEM EVENT LISTENERS ASSIGNED AT BOT (Rule 1-A specs)
+        // =================================================================
+        window.addEventListener('load', function() {
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    handlePrimaryInitialization();
+                });
+            });
+        });
+
+        // 3D Geo overlay buttons
+        document.getElementById('tg-geo-coord').addEventListener('click', () => {
+            overlays3D.coord = !overlays3D.coord;
+            document.getElementById('tg-geo-coord').classList.toggle('active-coord', overlays3D.coord);
+            gridHelper3D.visible = overlays3D.coord || document.getElementById('btn-tab-coord').classList.contains('active');
+            axisLineX.visible = overlays3D.coord || document.getElementById('btn-tab-coord').classList.contains('active');
+            axisLineZ.visible = overlays3D.coord || document.getElementById('btn-tab-coord').classList.contains('active');
+            refreshMathGuidanceBoard();
+        });
+        document.getElementById('tg-geo-line').addEventListener('click', () => {
+            overlays3D.line = !overlays3D.line;
+            document.getElementById('tg-geo-line').classList.toggle('active-line', overlays3D.line);
+            leftFoulLineLineMesh.visible = overlays3D.line; rightFoulLineLineMesh.visible = overlays3D.line;
+            refreshMathGuidanceBoard();
+        });
+        document.getElementById('tg-geo-circle').addEventListener('click', () => {
+            overlays3D.circle = !overlays3D.circle;
+            document.getElementById('tg-geo-circle').classList.toggle('active-circle', overlays3D.circle);
+            outfieldShiftCoverageCircleMesh.visible = overlays3D.circle;
+            refreshMathGuidanceBoard();
+        });
+        document.getElementById('tg-geo-translate').addEventListener('click', () => {
+            overlays3D.translate = !overlays3D.translate;
+            document.getElementById('tg-geo-translate').classList.toggle('active-translate', overlays3D.translate);
+            refreshMathGuidanceBoard();
+        });
+
+        // Preset dropdown selection
+        document.getElementById('preset-picker-select').addEventListener('change', (e) => {
+            const dataTable = {
+                'preset-0': { ba: 0.320, obp: 0.390, slg: 0.480 },
+                'preset-1': { ba: 0.285, obp: 0.350, slg: 0.580 },
+                'preset-2': { ba: 0.265, obp: 0.430, slg: 0.380 },
+                'preset-3': { ba: 0.240, obp: 0.300, slg: 0.340 }
+            };
+            const presetObj = dataTable[e.target.value];
+            if (presetObj) {
+                document.getElementById('slider-input-ba').value = presetObj.ba;
+                document.getElementById('slider-input-obp').value = presetObj.obp;
+                document.getElementById('slider-input-slg').value = presetObj.slg;
+                updateSlidersAndSabermetricsVal();
+            }
+        });
+
+        // Sliders change
+        ['slider-input-ba', 'slider-input-obp', 'slider-input-slg'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                document.getElementById('preset-picker-select').value = ""; // Clear selected preset on manual adjustments
+                updateSlidersAndSabermetricsVal();
+            });
+        });
+
+        // Side panel Tab switches
+        document.getElementById('btn-tab-stats').addEventListener('click', () => handleTabTransition('STATS'));
+        document.getElementById('btn-tab-coord').addEventListener('click', () => handleTabTransition('COORD'));
+        document.getElementById('btn-trigger-move').addEventListener('click', triggerManualFielderPlaneMove);
+
+        // Game Play Flow buttons
+        document.getElementById('action-pitch-ball').addEventListener('click', () => {
+            if (gameState !== 'IDLE' && gameState !== 'FREEZE' && gameState !== 'PLAY_END') return;
+            clearBallFreezeOverlayMechanisms();
+            
+            gameState = 'PITCHING';
+            timingBarProgressTracker = 0;
+            pitchIsTargetStrikeZone = Math.random() < 0.64; // Set probability course
+
+            const bat = playerEntities.batter.getObjectByName("batCylinderHandleNode");
+            if (bat) { bat.rotation.set(0.5, 0.3, -0.6); }
+
+            document.getElementById('action-pitch-ball').disabled = true;
+            document.getElementById('action-swing-bat').disabled = false;
+            document.getElementById('system-log-text').textContent = "투구 완료! 볼 궤적이 전개 중입니다. 적시 타이밍에 [타격 (SWING)]을 클릭하십시오.";
+        });
+
+        document.getElementById('action-swing-bat').addEventListener('click', processSwingAction);
+        
+        document.getElementById('action-system-reset').addEventListener('click', () => {
+            resetPitcherAtBatState();
+            homeScore = 0; awayScore = 0; countO = 0;
+            basesRunnerPresenceState[1] = basesRunnerPresenceState[2] = basesRunnerPresenceState[3] = false;
+            
+            Object.keys(fielderStructuralData).forEach(key => {
+                let d = fielderStructuralData[key];
+                d.curX = d.x; d.curZ = d.z;
+                playerEntities.fielders[key].position.set(d.x, 0.02, d.z);
+            });
+            refreshScoreboardHUD();
+            syncStaticRunnerVisibility();
+            document.getElementById('system-log-text').textContent = "시뮬레이션 전반이 완전 초기 상태로 재정립되었습니다.";
+        });
+
+        document.getElementById('action-division-calc').addEventListener('click', triggerDivisionAnalysisEngine);
+
+        // Landing Ball exploration controls
+        document.getElementById('btn-explore-line').addEventListener('click', () => {
+            activeLandingExplorationMode = 'LINE';
+            document.getElementById('btn-explore-line').classList.replace('btn-slate','btn-amber');
+            document.getElementById('btn-explore-circle').classList.replace('btn-sky','btn-slate');
+            document.getElementById('circle-explore-slider-box').style.display = 'none';
+            explorationLineCircleVectorMesh.visible = false;
+            
+            if (frozenBallPositionReference) {
+                const linePts = [new THREE.Vector3(0,0.02,0), new THREE.Vector3(frozenBallPositionReference.x * 2.5, 0.02, frozenBallPositionReference.z * 2.5)];
+                explorationLineCircleVectorMesh.geometry.setFromPoints(linePts);
+                explorationLineCircleVectorMesh.visible = true;
+            }
+            refreshMathGuidanceBoard();
+        });
+
+        document.getElementById('btn-explore-circle').addEventListener('click', () => {
+            activeLandingExplorationMode = 'CIRCLE';
+            document.getElementById('btn-explore-circle').classList.replace('btn-slate','btn-sky');
+            document.getElementById('btn-explore-line').classList.replace('btn-amber','btn-slate');
+            document.getElementById('circle-explore-slider-box').style.display = 'block';
+            
+            updateCircleGeoMeshOnLandingPoint();
+        });
+
+        document.getElementById('explore-radius-slider').addEventListener('input', (e) => {
+            targetLandingExploreRadius = parseFloat(e.target.value);
+            document.getElementById('explore-radius-lbl').textContent = `${targetLandingExploreRadius.toFixed(1)}m`;
+            updateCircleGeoMeshOnLandingPoint();
+        });
+
+        function updateCircleGeoMeshOnLandingPoint() {
+            if (activeLandingExplorationMode !== 'CIRCLE' || !frozenBallPositionReference) return;
+            
+            let points = [];
+            let convertedRadius = (targetLandingExploreRadius / REAL_BASE_DIST) * BS;
+            for(let t=0; t<=48; t++) {
+                let ang = (t/48)*Math.PI*2;
+                points.push(new THREE.Vector3(frozenBallPositionReference.x + convertedRadius*Math.cos(ang), 0.022, frozenBallPositionReference.z + convertedRadius*Math.sin(ang)));
+            }
+            explorationLineCircleVectorMesh.geometry.setFromPoints(points);
+            explorationLineCircleVectorMesh.visible = true;
+            refreshMathGuidanceBoard();
+        }
+
+        // Fullscreen Scatter AI modal handlers
+        const modalScatter = document.getElementById('modal-scatter-interface');
+        document.getElementById('action-open-scatter').addEventListener('click', () => {
+            modalScatter.style.display = 'block';
+            currentScatterActiveMode = 'CLS';
+            drawClassificationKnnScatterPlot();
+        });
+        document.getElementById('btn-close-modal').addEventListener('click', () => { modalScatter.style.display = 'none'; });
+
+        document.getElementById('btn-scatter-tab-cls').addEventListener('click', () => {
+            currentScatterActiveMode = 'CLS';
+            document.getElementById('btn-scatter-tab-cls').classList.add('active');
+            document.getElementById('btn-scatter-tab-reg').classList.remove('active');
+            document.getElementById('sub-panel-cls').style.display = 'flex';
+            document.getElementById('sub-panel-reg').style.display = 'none';
+            drawClassificationKnnScatterPlot();
+        });
+        document.getElementById('btn-scatter-tab-reg').addEventListener('click', () => {
+            currentScatterActiveMode = 'REG';
+            document.getElementById('btn-scatter-tab-reg').classList.add('active');
+            document.getElementById('btn-scatter-tab-cls').classList.remove('active');
+            document.getElementById('sub-panel-reg').style.display = 'flex';
+            document.getElementById('sub-panel-cls').style.display = 'none';
+            runLinearRegressionAnalysis();
+        });
+
+        document.getElementById('knn-radius-slider').addEventListener('input', (e) => {
+            document.getElementById('lbl-knn-radius-val').textContent = parseFloat(e.target.value).toFixed(3);
+            if (currentScatterActiveMode === 'CLS') drawClassificationKnnScatterPlot();
+        });
+
+        document.getElementById('btn-reset-zoom').addEventListener('click', () => {
+            let m = currentScatterActiveMode.toLowerCase();
+            svgZoomEngineState[m].scale = 1.0;
+            svgZoomEngineState[m].tx = 0; svgZoomEngineState[m].ty = 0;
+            if (currentScatterActiveMode === 'CLS') drawClassificationKnnScatterPlot();
+            else runLinearRegressionAnalysis();
+        });
+
+        document.getElementById('btn-insert-custom-dot').addEventListener('click', () => {
+            let userSLG = parseFloat(document.getElementById('input-custom-slg').value);
+            let userBB = parseFloat(document.getElementById('input-custom-bb').value);
+            if(isNaN(userSLG) || isNaN(userBB) || userSLG < 0.2 || userSLG > 0.8 || userBB < 0 || userBB > 120) {
+                alert("한계 규격 내부 가치 실수를 입력해주십시오. (장타율 0.2~0.8, 볼넷 0~120)");
+                return;
+            }
+            insertedCustomPointsCounter++;
+            kboClassificationDataset.push({
+                name: `가상AI_${insertedCustomPointsCounter}`, slg: userSLG, bb: userBB, type: "미분류", color: "#a855f7"
+            });
+            drawClassificationKnnScatterPlot();
+        });
+
+        // Global hotkey integration
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT') return;
+            if (e.key === 'Escape') modalScatter.style.display = 'none';
+            if (e.key === 'p' || e.key === 'P') document.getElementById('action-pitch-ball').click();
+            if (e.key === ' ') { e.preventDefault(); document.getElementById('action-swing-bat').click(); }
+            if (e.key === 'r' || e.key === 'R') document.getElementById('action-system-reset').click();
+        });
+
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas-container');
+            const w = (container && container.clientWidth > 0) ? container.clientWidth : window.innerWidth;
+            const h = (container && container.clientHeight > 0) ? container.clientHeight : window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+    </script>
 </body>
 </html>
